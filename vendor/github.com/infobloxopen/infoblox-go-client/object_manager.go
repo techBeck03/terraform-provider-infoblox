@@ -25,6 +25,7 @@ type IBObjectManager interface {
 	DeleteNetwork(ref string, netview string) (string, error)
 	GetEADefinition(name string) (*EADefinition, error)
 	CreateEADefinition(eadef EADefinition) (*EADefinition, error)
+	UpdateNetwork(ref string, name string, tenant_id string, gateway string) (*NetworkUpdate, error)
 	UpdateNetworkViewEA(ref string, addEA EA, removeEA EA) error
 	CreateHostRecord(enabledns bool, recordName string, netview string, dnsview string, cidr string, ipAddr string, macAddress string, ea EA) (*HostRecord, error)
 	GetHostRecordByRef(ref string) (*HostRecord, error)
@@ -49,7 +50,6 @@ type ObjectManager struct {
 	tenantID  string
 }
 
-
 func NewObjectManager(connector IBConnector, cmpType string, tenantID string) *ObjectManager {
 	objMgr := new(ObjectManager)
 
@@ -68,10 +68,10 @@ func (objMgr *ObjectManager) getBasicEA(cloudAPIOwned Bool) EA {
 	return ea
 }
 
-func (objMgr *ObjectManager) extendEA(ea EA) EA{
+func (objMgr *ObjectManager) extendEA(ea EA) EA {
 	eas := objMgr.getBasicEA(true)
-	for k,v :=range ea{
-	eas[k]=v
+	for k, v := range ea {
+		eas[k] = v
 	}
 	return eas
 }
@@ -119,7 +119,8 @@ func (objMgr *ObjectManager) CreateNetwork(netview string, cidr string, name str
 	network := NewNetwork(Network{
 		NetviewName: netview,
 		Cidr:        cidr,
-		Ea:          objMgr.getBasicEA(true)})
+		Ea:          objMgr.getBasicEA(true),
+		Comment:     name})
 
 	if name != "" {
 		network.Ea["Network Name"] = name
@@ -157,6 +158,21 @@ func (objMgr *ObjectManager) GetNetworkView(name string) (*NetworkView, error) {
 	}
 
 	return &res[0], nil
+}
+
+func (objMgr *ObjectManager) UpdateNetwork(ref string, name string, tenant_id string, gateway string) (*NetworkUpdate, error) {
+	var res NetworkUpdate
+	network := NewNetwork(Network{})
+	err := objMgr.connector.GetObject(network, ref, &network)
+
+	res.Comment = name
+	res.Ea = network.Ea
+	res.Ea["Network Name"] = name
+	res.Ea["Tenant ID"] = tenant_id
+	res.Ea["Gateway"] = gateway
+
+	_, err = objMgr.connector.UpdateObject(&res, ref)
+	return &res, err
 }
 
 func (objMgr *ObjectManager) UpdateNetworkViewEA(ref string, addEA EA, removeEA EA) error {
@@ -284,7 +300,7 @@ func (objMgr *ObjectManager) AllocateIP(netview string, cidr string, ipAddr stri
 		Cidr:        cidr,
 		Mac:         macAddress,
 		Name:        name,
-		Ea:         eas})
+		Ea:          eas})
 
 	if ipAddr == "" {
 		fixedAddr.IPAddress = fmt.Sprintf("func:nextavailableip:%s,%s", cidr, netview)
@@ -381,7 +397,7 @@ func (objMgr *ObjectManager) UpdateFixedAddress(fixedAddrRef string, matchClient
 		if validateMatchClient(matchClient) {
 			updateFixedAddr.MatchClient = matchClient
 		} else {
-			return nil , fmt.Errorf("wrong value for match_client passed %s \n ", matchClient)
+			return nil, fmt.Errorf("wrong value for match_client passed %s \n ", matchClient)
 		}
 	}
 
@@ -514,7 +530,6 @@ func (objMgr *ObjectManager) CreateARecord(netview string, dnsview string, recor
 
 	eas := objMgr.extendEA(ea)
 
-
 	recordA := NewRecordA(RecordA{
 		View: dnsview,
 		Name: recordname,
@@ -539,7 +554,7 @@ func (objMgr *ObjectManager) DeleteARecord(ref string) (string, error) {
 	return objMgr.connector.DeleteObject(ref)
 }
 
-func (objMgr *ObjectManager) CreateCNAMERecord(canonical string, recordname string, dnsview string, ea EA)(*RecordCNAME, error) {
+func (objMgr *ObjectManager) CreateCNAMERecord(canonical string, recordname string, dnsview string, ea EA) (*RecordCNAME, error) {
 
 	eas := objMgr.extendEA(ea)
 
@@ -547,7 +562,7 @@ func (objMgr *ObjectManager) CreateCNAMERecord(canonical string, recordname stri
 		View:      dnsview,
 		Name:      recordname,
 		Canonical: canonical,
-		Ea: eas})
+		Ea:        eas})
 
 	ref, err := objMgr.connector.CreateObject(recordCNAME)
 	recordCNAME.Ref = ref
@@ -566,9 +581,7 @@ func (objMgr *ObjectManager) DeleteCNAMERecord(ref string) (string, error) {
 
 func (objMgr *ObjectManager) CreatePTRRecord(netview string, dnsview string, recordname string, cidr string, ipAddr string, ea EA) (*RecordPTR, error) {
 
-
 	eas := objMgr.extendEA(ea)
-
 
 	recordPTR := NewRecordPTR(RecordPTR{
 		View:     dnsview,

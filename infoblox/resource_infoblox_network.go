@@ -2,9 +2,10 @@ package infoblox
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/infobloxopen/infoblox-go-client"
 	"log"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	ibclient "github.com/infobloxopen/infoblox-go-client"
 )
 
 func resourceNetwork() *schema.Resource {
@@ -90,6 +91,11 @@ func resourceNetworkCreate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	_, err = objMgr.UpdateNetwork(nwname.Ref, networkName, tenantID, gatewayIP.IPAddress)
+	if err != nil {
+		return fmt.Errorf("Getting Network block from network view (%s) failed : %s", networkViewName, err)
+	}
+
 	d.Set("gateway", gatewayIP.IPAddress)
 	d.SetId(nwname.Ref)
 
@@ -110,12 +116,31 @@ func resourceNetworkRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Getting Network block from network view (%s) failed : %s", networkViewName, err)
 	}
 	d.SetId(obj.Ref)
+	d.Set("network_name", obj.Ea["Network Name"])
+	d.Set("tenant_id", obj.Ea["Tenant ID"])
+	d.Set("gateway", obj.Ea["Gateway"])
 	log.Printf("[DEBUG] %s: Completed reading network block", resourceNetworkIDString(d))
 	return nil
 }
 func resourceNetworkUpdate(d *schema.ResourceData, m interface{}) error {
+	if d.HasChange("cidr") || d.HasChange("network_view_name") || d.HasChange("gateway") || d.HasChange("reserveIP") {
+		return fmt.Errorf("Only network name and tenant_id updates are allowed")
+	}
+	networkViewName := d.Get("network_view_name").(string)
+	networkName := d.Get("network_name").(string)
+	tenantID := d.Get("tenant_id").(string)
+	gateway := d.Get("gateway").(string)
+	connector := m.(*ibclient.Connector)
 
-	return fmt.Errorf("network updation is not supported")
+	objMgr := ibclient.NewObjectManager(connector, "Terraform", tenantID)
+
+	obj, err := objMgr.UpdateNetwork(d.Id(), networkName, tenantID, gateway)
+	if err != nil {
+		return fmt.Errorf("Getting Network block from network view (%s) failed : %s", networkViewName, err)
+	}
+	d.Set("network_name", obj.Ea["Network Name"])
+	d.Set("tenant_id", obj.Ea["Tenant ID"])
+	return nil
 }
 
 func resourceNetworkDelete(d *schema.ResourceData, m interface{}) error {

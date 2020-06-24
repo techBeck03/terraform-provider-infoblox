@@ -2,9 +2,10 @@ package infoblox
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/infobloxopen/infoblox-go-client"
 	"log"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	ibclient "github.com/infobloxopen/infoblox-go-client"
 )
 
 func resourceIPAllocation() *schema.Resource {
@@ -68,6 +69,14 @@ func resourceIPAllocation() *schema.Resource {
 				Required:    true,
 				Description: "Unique identifier of your tenant in cloud.",
 			},
+			"extensible_attributes": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "Optional map of extensible attributes",
+			},
 		},
 	}
 }
@@ -102,6 +111,9 @@ func resourceIPAllocationRequest(d *schema.ResourceData, m interface{}) error {
 	}
 	if macAddr == "" {
 		macAddr = ZeroMacAddr
+	}
+	for key, value := range d.Get("extensible_attributes").(map[string]interface{}) {
+		ea[key] = value.(string)
 	}
 	objMgr := ibclient.NewObjectManager(connector, "Terraform", tenantID)
 
@@ -141,12 +153,38 @@ func resourceIPAllocationGet(d *schema.ResourceData, m interface{}) error {
 		if err != nil {
 			return fmt.Errorf("Error getting IP from network block(%s): %s", cidr, err)
 		}
+		// for key, value := range obj.Ea {
+		// 	convertedValue := ""
+		// 	switch value.(type) {
+		// 	case bool, ibclient.Bool:
+		// 		convertedValue = fmt.Sprintf("%t", value)
+		// 	case int:
+		// 		convertedValue = fmt.Sprintf("%d", value)
+		// 	default:
+		// 		convertedValue = value.(string)
+		// 	}
+		// 	obj.Ea[key] = convertedValue
+		// }
+		// d.Set("extensible_attributes", obj.Ea)
 		d.SetId(obj.Ref)
 	} else {
 		obj, err := objMgr.GetFixedAddressByRef(d.Id())
 		if err != nil {
 			return fmt.Errorf("Error getting IP from network block(%s): %s", cidr, err)
 		}
+		for key, value := range obj.Ea {
+			convertedValue := ""
+			switch value.(type) {
+			case bool, ibclient.Bool:
+				convertedValue = fmt.Sprintf("%t", value)
+			case int:
+				convertedValue = fmt.Sprintf("%d", value)
+			default:
+				convertedValue = value.(string)
+			}
+			obj.Ea[key] = convertedValue
+		}
+		d.Set("extensible_attributes", obj.Ea)
 		d.SetId(obj.Ref)
 	}
 	log.Printf("[DEBUG] %s: Completed Reading IP from the network block", resourceIPAllocationIDString(d))

@@ -93,12 +93,20 @@ type Network struct {
 	NetviewName string `json:"network_view,omitempty"`
 	Cidr        string `json:"network,omitempty"`
 	Ea          EA     `json:"extattrs,omitempty"`
+	Comment     string `json:"comment,omitempty"`
+}
+
+type NetworkUpdate struct {
+	IBBase
+	Ref     string `json:"_ref,omitempty"`
+	Ea      EA     `json:"extattrs,omitempty"`
+	Comment string `json:"comment,omitempty"`
 }
 
 func NewNetwork(nw Network) *Network {
 	res := nw
 	res.objectType = "network"
-	res.returnFields = []string{"extattrs", "network", "network_view"}
+	res.returnFields = []string{"extattrs", "network", "network_view", "comment"}
 
 	return &res
 }
