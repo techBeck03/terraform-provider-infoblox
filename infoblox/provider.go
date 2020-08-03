@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	ibclient "github.com/infobloxopen/infoblox-go-client"
+	ibclient "github.com/techBeck03/infoblox-go-client"
 )
 
 //Provider returns a terraform.ResourceProvider.

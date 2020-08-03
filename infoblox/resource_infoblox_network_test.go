@@ -2,10 +2,11 @@ package infoblox
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/infobloxopen/infoblox-go-client"
-	"testing"
+	ibclient "github.com/techBeck03/infoblox-go-client"
 )
 
 func TestAccresourceNetwork(t *testing.T) {
