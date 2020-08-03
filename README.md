@@ -1,5 +1,9 @@
 # Terraform Provider for Infoblox
+
  <img width="171" alt="capture" src="https://user-images.githubusercontent.com/36291746/39614422-6b653088-4f8d-11e8-83fd-05b18ca974a2.PNG">
+
+
+This is a fork of [terraform-providers/terraform-provider-infoblox](https://github.com/terraform-providers/terraform-provider-infoblox) to support string based extensible attributes and additional data resources.
 
 ## Requirements
 * [Terraform](https://www.terraform.io/downloads.html) 0.11.x or greater
