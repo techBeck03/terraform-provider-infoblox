@@ -1,3 +1,4 @@
 terraform-provider-infoblox
 example
 .DS_Store
+.goreleaser.yml
