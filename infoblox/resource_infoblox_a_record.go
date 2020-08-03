@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	ibclient "github.com/infobloxopen/infoblox-go-client"
+	ibclient "github.com/techBeck03/infoblox-go-client"
 )
 
 func resourceARecord() *schema.Resource {
