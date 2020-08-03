@@ -2,10 +2,11 @@ package infoblox
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/infobloxopen/infoblox-go-client"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	ibclient "github.com/infobloxopen/infoblox-go-client"
 )
 
 func resourceIPAssociation() *schema.Resource {
@@ -124,6 +125,8 @@ func resourceIPAssociationDelete(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] %s: Beginning Reassociation of IP address in specified network block", resourceIPAssociationIDString(d))
 	matchClient := "MAC_ADDRESS"
 	ipAddr := d.Get("ip_addr").(string)
+	cidr := d.Get("cidr").(string)
+	networkViewName := d.Get("network_view_name").(string)
 	vmID := d.Get("vm_id").(string)
 	vmName := d.Get("vm_name").(string)
 	tenantID := d.Get("tenant_id").(string)
@@ -136,13 +139,21 @@ func resourceIPAssociationDelete(d *schema.ResourceData, m interface{}) error {
 	objMgr := ibclient.NewObjectManager(connector, "Terraform", tenantID)
 
 	if (zone != "" || len(zone) != 0) && (dnsView != "" || len(dnsView) != 0) {
-		_, err := objMgr.UpdateHostRecord(d.Id(), ipAddr, ZeroMacAddr, vmID, vmName)
+		hostRecordObj, err := objMgr.GetHostRecord(vmName+"."+zone, networkViewName, cidr, ipAddr)
+		if err != nil {
+			return fmt.Errorf("GetHostRecord failed from network block(%s):%s", cidr, err)
+		}
+		_, err = objMgr.UpdateHostRecord(d.Id(), ipAddr, ZeroMacAddr, vmID, vmName, hostRecordObj.Ea)
 		if err != nil {
 			return fmt.Errorf("Error Releasing IP from network block having reference (%s): %s", d.Id(), err)
 		}
 		d.SetId("")
 	} else {
-		_, err := objMgr.UpdateFixedAddress(d.Id(), matchClient, ZeroMacAddr, "", "")
+		fixedAddressObj, err := objMgr.GetFixedAddress(networkViewName, cidr, ipAddr, "")
+		if err != nil {
+			return fmt.Errorf("GetFixedAddress error from network block(%s):%s", cidr, err)
+		}
+		_, err = objMgr.UpdateFixedAddress(d.Id(), matchClient, ZeroMacAddr, "", "", fixedAddressObj.Ea)
 		if err != nil {
 			return fmt.Errorf("Error Releasing IP from network block having reference (%s): %s", d.Id(), err)
 		}
@@ -190,7 +201,7 @@ func Resource(d *schema.ResourceData, m interface{}) error {
 		if err != nil {
 			return fmt.Errorf("GetHostRecord failed from network block(%s):%s", cidr, err)
 		}
-		_, err = objMgr.UpdateHostRecord(hostRecordObj.Ref, ipAddr, macAddr, vmID, Name)
+		_, err = objMgr.UpdateHostRecord(hostRecordObj.Ref, ipAddr, macAddr, vmID, Name, hostRecordObj.Ea)
 		if err != nil {
 			return fmt.Errorf("UpdateHost Record error from network block(%s):%s", cidr, err)
 		}
@@ -201,7 +212,7 @@ func Resource(d *schema.ResourceData, m interface{}) error {
 			return fmt.Errorf("GetFixedAddress error from network block(%s):%s", cidr, err)
 		}
 
-		_, err = objMgr.UpdateFixedAddress(fixedAddressObj.Ref, matchClient, macAddr, vmID, Name)
+		_, err = objMgr.UpdateFixedAddress(fixedAddressObj.Ref, matchClient, macAddr, vmID, Name, fixedAddressObj.Ea)
 		if err != nil {
 			return fmt.Errorf("UpdateFixedAddress error from network block(%s):%s", cidr, err)
 		}

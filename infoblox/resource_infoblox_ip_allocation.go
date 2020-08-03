@@ -8,6 +8,23 @@ import (
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 )
 
+var ignoredEas []string = []string{
+	"CMP Type",
+	"Cloud API Owned",
+	"Tenant ID",
+	"VM ID",
+	"VM Name",
+}
+
+func contains(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
+}
+
 func resourceIPAllocation() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceIPAllocationRequest,
@@ -153,38 +170,44 @@ func resourceIPAllocationGet(d *schema.ResourceData, m interface{}) error {
 		if err != nil {
 			return fmt.Errorf("Error getting IP from network block(%s): %s", cidr, err)
 		}
-		// for key, value := range obj.Ea {
-		// 	convertedValue := ""
-		// 	switch value.(type) {
-		// 	case bool, ibclient.Bool:
-		// 		convertedValue = fmt.Sprintf("%t", value)
-		// 	case int:
-		// 		convertedValue = fmt.Sprintf("%d", value)
-		// 	default:
-		// 		convertedValue = value.(string)
-		// 	}
-		// 	obj.Ea[key] = convertedValue
-		// }
-		// d.Set("extensible_attributes", obj.Ea)
+		var filteredEas = make(map[string]string)
+		for key, value := range obj.Ea {
+			if !contains(ignoredEas, key) {
+				convertedValue := ""
+				switch value.(type) {
+				case bool, ibclient.Bool:
+					convertedValue = fmt.Sprintf("%t", value)
+				case int:
+					convertedValue = fmt.Sprintf("%d", value)
+				default:
+					convertedValue = value.(string)
+				}
+				filteredEas[key] = convertedValue
+			}
+		}
+		d.Set("extensible_attributes", filteredEas)
 		d.SetId(obj.Ref)
 	} else {
 		obj, err := objMgr.GetFixedAddressByRef(d.Id())
 		if err != nil {
 			return fmt.Errorf("Error getting IP from network block(%s): %s", cidr, err)
 		}
+		var filteredEas = make(map[string]string)
 		for key, value := range obj.Ea {
-			convertedValue := ""
-			switch value.(type) {
-			case bool, ibclient.Bool:
-				convertedValue = fmt.Sprintf("%t", value)
-			case int:
-				convertedValue = fmt.Sprintf("%d", value)
-			default:
-				convertedValue = value.(string)
+			if !contains(ignoredEas, key) {
+				convertedValue := ""
+				switch value.(type) {
+				case bool, ibclient.Bool:
+					convertedValue = fmt.Sprintf("%t", value)
+				case int:
+					convertedValue = fmt.Sprintf("%d", value)
+				default:
+					convertedValue = value.(string)
+				}
+				filteredEas[key] = convertedValue
 			}
-			obj.Ea[key] = convertedValue
 		}
-		d.Set("extensible_attributes", obj.Ea)
+		d.Set("extensible_attributes", filteredEas)
 		d.SetId(obj.Ref)
 	}
 	log.Printf("[DEBUG] %s: Completed Reading IP from the network block", resourceIPAllocationIDString(d))
@@ -200,23 +223,35 @@ func resourceIPAllocationUpdate(d *schema.ResourceData, m interface{}) error {
 	macAddr := d.Get("mac_addr").(string)
 	tenantID := d.Get("tenant_id").(string)
 	vmID := d.Get("vm_id").(string)
+	cidr := d.Get("cidr").(string)
 	vmName := d.Get("vm_name").(string)
 	zone := d.Get("zone").(string)
 	dnsView := d.Get("dns_view").(string)
 	connector := m.(*ibclient.Connector)
+	eas := d.Get("extensible_attributes")
 
 	objMgr := ibclient.NewObjectManager(connector, "Terraform", tenantID)
 
 	if (zone != "" || len(zone) != 0) && (dnsView != "" || len(dnsView) != 0) {
 		hostRecordObj, _ := objMgr.GetHostRecordByRef(d.Id())
+		for key, value := range eas.(map[string]string) {
+			hostRecordObj.Ea[key] = value
+		}
 		IPAddrObj, _ := objMgr.GetIpAddressFromHostRecord(*hostRecordObj)
-		obj, err := objMgr.UpdateHostRecord(d.Id(), IPAddrObj, macAddr, vmID, vmName)
+		obj, err := objMgr.UpdateHostRecord(d.Id(), IPAddrObj, macAddr, vmID, vmName, hostRecordObj.Ea)
 		if err != nil {
 			return fmt.Errorf("Error updating IP from network block having reference (%s): %s", d.Id(), err)
 		}
 		d.SetId(obj)
 	} else {
-		obj, err := objMgr.UpdateFixedAddress(d.Id(), match_client, macAddr, vmID, vmName)
+		fixedAddressObj, err := objMgr.GetFixedAddressByRef(d.Id())
+		if err != nil {
+			return fmt.Errorf("Error getting IP from network block(%s): %s", cidr, err)
+		}
+		for key, value := range eas.(map[string]string) {
+			fixedAddressObj.Ea[key] = value
+		}
+		obj, err := objMgr.UpdateFixedAddress(d.Id(), match_client, macAddr, vmID, vmName, fixedAddressObj.Ea)
 		if err != nil {
 			return fmt.Errorf("Error updating IP from network block having reference (%s): %s", d.Id(), err)
 		}

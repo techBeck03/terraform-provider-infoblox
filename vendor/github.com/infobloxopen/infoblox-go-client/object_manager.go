@@ -17,7 +17,7 @@ type IBObjectManager interface {
 	GetNetworkContainer(netview string, cidr string) (*NetworkContainer, error)
 	AllocateIP(netview string, cidr string, ipAddr string, macAddress string, name string, ea EA) (*FixedAddress, error)
 	AllocateNetwork(netview string, cidr string, prefixLen uint, name string) (network *Network, err error)
-	UpdateFixedAddress(fixedAddrRef string, matchclient string, macAddress string, vmID string, vmName string) (*FixedAddress, error)
+	UpdateFixedAddress(fixedAddrRef string, matchclient string, macAddress string, vmID string, vmName string, eas EA) (*FixedAddress, error)
 	GetFixedAddress(netview string, cidr string, ipAddr string, macAddr string) (*FixedAddress, error)
 	GetFixedAddressByRef(ref string) (*FixedAddress, error)
 	DeleteFixedAddress(ref string) (string, error)
@@ -31,7 +31,7 @@ type IBObjectManager interface {
 	GetHostRecordByRef(ref string) (*HostRecord, error)
 	GetHostRecord(recordName string, netview string, cidr string, ipAddr string) (*HostRecord, error)
 	GetIpAddressFromHostRecord(host HostRecord) (string, error)
-	UpdateHostRecord(hostRref string, ipAddr string, macAddress string, vmID string, vmName string) (string, error)
+	UpdateHostRecord(hostRref string, ipAddr string, macAddress string, vmID string, vmName string, eas EA) (string, error)
 	DeleteHostRecord(ref string) (string, error)
 	CreateARecord(netview string, dnsview string, recordname string, cidr string, ipAddr string, ea EA) (*RecordA, error)
 	GetARecordByRef(ref string) (*RecordA, error)
@@ -377,7 +377,7 @@ func validateMatchClient(value string) bool {
 	return false
 }
 
-func (objMgr *ObjectManager) UpdateFixedAddress(fixedAddrRef string, matchClient string, macAddress string, vmID string, vmName string) (*FixedAddress, error) {
+func (objMgr *ObjectManager) UpdateFixedAddress(fixedAddrRef string, matchClient string, macAddress string, vmID string, vmName string, eas EA) (*FixedAddress, error) {
 	updateFixedAddr := NewFixedAddress(FixedAddress{Ref: fixedAddrRef})
 
 	if len(macAddress) != 0 {
@@ -392,6 +392,9 @@ func (objMgr *ObjectManager) UpdateFixedAddress(fixedAddrRef string, matchClient
 	if vmName != "" {
 		ea["VM Name"] = vmName
 		updateFixedAddr.Ea = ea
+	}
+	for key, value := range eas {
+		ea[key] = value
 	}
 	if matchClient != "" {
 		if validateMatchClient(matchClient) {
@@ -502,7 +505,7 @@ func (objMgr *ObjectManager) GetIpAddressFromHostRecord(host HostRecord) (string
 	return host.Ipv4Addrs[0].Ipv4Addr, err
 }
 
-func (objMgr *ObjectManager) UpdateHostRecord(hostRref string, ipAddr string, macAddress string, vmID string, vmName string) (string, error) {
+func (objMgr *ObjectManager) UpdateHostRecord(hostRref string, ipAddr string, macAddress string, vmID string, vmName string, eas EA) (string, error) {
 
 	recordHostIpAddr := NewHostRecordIpv4Addr(HostRecordIpv4Addr{Mac: macAddress, Ipv4Addr: ipAddr})
 	recordHostIpAddrSlice := []HostRecordIpv4Addr{*recordHostIpAddr}
@@ -517,6 +520,9 @@ func (objMgr *ObjectManager) UpdateHostRecord(hostRref string, ipAddr string, ma
 	if vmName != "" {
 		ea["VM Name"] = vmName
 		updateHostRecord.Ea = ea
+	}
+	for key, value := range eas {
+		ea[key] = value
 	}
 	ref, err := objMgr.connector.UpdateObject(updateHostRecord, hostRref)
 	return ref, err
