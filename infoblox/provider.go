@@ -1,109 +1,116 @@
 package infoblox
 
 import (
-	"time"
+	"context"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
-	ibclient "github.com/techBeck03/infoblox-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
-//Provider returns a terraform.ResourceProvider.
-func Provider() terraform.ResourceProvider {
+// Provider -
+func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"server": &schema.Schema{
+			"hostname": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_SERVER", nil),
-				Description: "Infoblox server IP address.",
+				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_HOSTNAME", nil),
 			},
-			"username": &schema.Schema{
+			"port": {
+				Type:        schema.TypeString,
+				Default:     "443",
+				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_PORT", nil),
+			},
+			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_USERNAME", nil),
-				Description: "User to authenticate with Infoblox server.",
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
+				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_PASSWORD", nil),
-				Description: "Password to authenticate with Infoblox server.",
 			},
-			"wapi_version": &schema.Schema{
+			"version": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("WAPI_VERSION", "2.7"),
-				Description: "WAPI Version of Infoblox server defaults to v2.7.",
+				Default:     "2.11",
+				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_VERSION", nil),
 			},
-			"port": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("PORT", "443"),
-				Description: "Port number used for connection for Infoblox Server.",
-			},
-
-			"sslmode": &schema.Schema{
+			"disable_tls_verification": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SSLMODE", "false"),
-				Description: "If set, Infoblox client will permit unverifiable SSL certificates.",
-			},
-			"connect_timeout": &schema.Schema{
-				Type:        schema.TypeInt,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CONNECT_TIMEOUT", 60),
-				Description: "Maximum wait for connection, in seconds. Zero or not specified means wait indefinitely.",
-			},
-			"pool_connections": &schema.Schema{
-				Type:        schema.TypeInt,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("POOL_CONNECTIONS", "10"),
-				Description: "Maximum number of connections to establish to the Infoblox server. Zero means unlimited.",
+				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_DISABLE_TLS", false),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"infoblox_network":        resourceNetwork(),
-			"infoblox_network_view":   resourceNetworkView(),
-			"infoblox_ip_allocation":  resourceIPAllocation(),
-			"infoblox_ip_association": resourceIPAssociation(),
-			"infoblox_a_record":       resourceARecord(),
-			"infoblox_cname_record":   resourceCNAMERecord(),
-			"infoblox_ptr_record":     resourcePTRRecord(),
+			"host_record": resourceHostRecord(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"infoblox_network_view": dataSourceInfobloxNetworkView(),
-			"infoblox_network":      dataSourceInfobloxNetwork(),
+			"host_record": dataSourceHostRecord(),
 		},
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigure,
 	}
-
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	hostname := d.Get("hostname").(string)
+	port := d.Get("port").(string)
+	username := d.Get("username").(string)
+	password := d.Get("password").(string)
+	version := d.Get("version").(string)
+	disableTLS := d.Get("disable_tls_verification").(bool)
 
-	var seconds int64
-	seconds = int64(d.Get("connect_timeout").(int))
-	hostConfig := ibclient.HostConfig{
-		Host:     d.Get("server").(string),
-		Port:     d.Get("port").(string),
-		Username: d.Get("username").(string),
-		Password: d.Get("password").(string),
-		Version:  d.Get("wapi_version").(string),
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
+	config := infoblox.Config{
+		Host:                   hostname,
+		Port:                   port,
+		Username:               username,
+		Password:               password,
+		Version:                version,
+		DisableTLSVerification: disableTLS,
 	}
 
-	transportConfig := ibclient.TransportConfig{
-		SslVerify:           d.Get("sslmode").(bool),
-		HttpRequestTimeout:  time.Duration(seconds),
-		HttpPoolConnections: d.Get("pool_connections").(int),
+	// Check for required provider parameters
+	check := validate(config)
+
+	if check.HasError() {
+		return nil, check
 	}
 
-	requestBuilder := &ibclient.WapiRequestBuilder{}
-	requestor := &ibclient.WapiHttpRequestor{}
+	client := infoblox.New(config)
 
-	conn, err := ibclient.NewConnector(hostConfig, transportConfig, requestBuilder, requestor)
-	if err != nil {
-		return nil, err
+	return &client, diags
+}
+
+// validate validates the config needed to initialize a infoblox client,
+// returning a single error with all validation errors, or nil if no error.
+func validate(config infoblox.Config) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if config.Host == "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Missing provider parameter",
+			Detail:   "Hostname must be configured for the infoblox provider",
+		})
 	}
-	return conn, err
+	if config.Username == "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Missing provider parameter",
+			Detail:   "Username must be configured for the infoblox provider",
+		})
+	}
+	if config.Password == "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Missing provider parameter",
+			Detail:   "Password must be configured for the infoblox provider",
+		})
+	}
+	return diags
 }

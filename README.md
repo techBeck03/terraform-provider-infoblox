@@ -1,66 +1,33 @@
-# Terraform Provider for Infoblox
+# Terraform Provider Hashicups
 
-This is a fork of [terraform-providers/terraform-provider-infoblox](https://github.com/terraform-providers/terraform-provider-infoblox) to support string based extensible attributes and additional data resources.
+This repo is a companion repo to the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers) Learn collection. 
 
-## Usage Examples
+In the collection, you will use the HashiCups provider as a bridge between Terraform and the HashiCups API. Then, extend Terraform by recreating the HashiCups provider. By the end of this collection, you will be able to take these intuitions to create your own custom Terraform provider. 
 
-### Create a network with Comment
-```
-# Retrieve network view for new network
-data "infoblox_network_view" "nv"{
-  network_view_name="default"
-}
-resource "infoblox_network" "net-1"{
-  network_view_name=data.infoblox_network_view.nv.network_view_name
-  network_name="Network 1"
-  cidr="1.1.1.0/24"
-  tenant_id="infra"
-}
+## Build provider
+
+Run the following command to build the provider
+
+```shell
+$ go build -o terraform-provider-hashicups
 ```
 
-### Create a host record with EAs
-```
-# Retrieve network view for new network
-data "infoblox_network_view" "nv"{
-  network_view_name="default"
-}
+## Test sample configuration
 
-# Retrieve network for host record
-data "infoblox_network" "nw"{
-  network_view_name=data.infoblox_network_view.nv.network_view_name
-  cidr="1.1.1.0/24"
-  tenant_id="infra"
-}
+First, build and install the provider.
 
-# Create allocation
-resource "infoblox_ip_allocation" "allocation"{
-  network_view_name=data.infoblox_network_view.nv.network_view_name
-  vm_name="server-1"
-  zone="example.com"
-  dns_view="default"
-  enable_dns=true
-  cidr=data.infoblox_network.nw.cidr
-  tenant_id="infra"
-  extensible_attributes = {
-    Environment = "Dev"
-    Deployment = "1234567"
-    Owner = "ACME User"
-  }
-}
-
-# Assuming virtual machine is created elsewhere
-resource "infoblox_ip_association" "associate"{
-  vm_name=vsphere_virtual_machine.vm.name
-  cidr=infoblox_ip_allocation.allocation.cidr
-  mac_addr=vsphere_virtual_machine.vm.network_interface.0.mac_address
-  ip_addr=vsphere_virtual_machine.vm.default_ip_address
-  vm_id=vsphere_virtual_machine.vm.id
-  tenant_id="infra"
-  zone="example.com"
-  dns_view="default"
-}
+```shell
+$ make install
 ```
 
+Then, navigate to the `examples` directory. 
 
-## Disclaimer
-This is a community provider so use at your own risk
+```shell
+$ cd examples
+```
+
+Run the following command to initialize the workspace and apply the sample configuration.
+
+```shell
+$ terraform init && terraform apply
+```
