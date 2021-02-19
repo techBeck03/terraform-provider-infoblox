@@ -10,6 +10,13 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
+var (
+	hostRecordRequiredIPFields = []string{
+		"network",
+		"ip_v4_address",
+	}
+)
+
 func resourceHostRecord() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceHostRecordCreate,
@@ -44,6 +51,8 @@ func resourceHostRecord() *schema.Resource {
 				Optional:         true,
 				Computed:         true,
 				ForceNew:         true,
+				ConflictsWith:    []string{"ip_v4_address"},
+				AtLeastOneOf:     hostRecordRequiredIPFields,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
 			"enable_dns": {
@@ -73,12 +82,14 @@ func resourceHostRecord() *schema.Resource {
 				ForceNew:    true,
 				Computed:    true,
 			},
-			"ip_v4_addresses": {
-				Type:        schema.TypeList,
-				Description: "IPv4 addresses associated with host record",
-				Optional:    true,
-				ForceNew:    true,
-				Computed:    true,
+			"ip_v4_address": {
+				Type:          schema.TypeSet,
+				Description:   "IPv4 addresses associated with host record",
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      true,
+				ConflictsWith: []string{"network"},
+				AtLeastOneOf:  hostRecordRequiredIPFields,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref": {
@@ -90,6 +101,7 @@ func resourceHostRecord() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "IP address",
 							Required:    true,
+							ForceNew:    true,
 						},
 						"hostname": {
 							Type:        schema.TypeString,
@@ -156,7 +168,7 @@ func convertHostRecordToResourceData(client *infoblox.Client, d *schema.Resource
 		})
 	}
 
-	d.Set("ip_v4_addresses", ipAddressList)
+	d.Set("ip_v4_address", ipAddressList)
 
 	eas, err := client.ConvertEAsToJSONString(*record.ExtensibleAttributes)
 	if err != nil {
@@ -179,12 +191,9 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 	record.View = d.Get("view").(string)
 	record.Zone = d.Get("zone").(string)
 
-	ipAddressList := d.Get("ip_v4_addresses").([]interface{})
+	ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
 	record.IPv4Addrs = []infoblox.IPv4Addr{}
 	if len(ipAddressList) == 0 {
-		if network == "" {
-			return &record, fmt.Errorf("`network` is required when not specifying an IP address")
-		}
 		record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
 			IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
 		})
@@ -192,8 +201,8 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 		for _, address := range ipAddressList {
 			var ipv4Addr infoblox.IPv4Addr
 			ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
-			if address.(map[string]interface{})["host"].(string) != "" {
-				ipv4Addr.Host = address.(map[string]interface{})["host"].(string)
+			if address.(map[string]interface{})["hostname"] != "" {
+				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
 			}
 			ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
 			if address.(map[string]interface{})["mac_address"].(string) != "" {
@@ -277,6 +286,12 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 	if d.HasChange("enable_dns") {
 		record.EnableDNS = newBool(d.Get("enable_dns").(bool))
 	}
+	if d.HasChange("network") {
+		network := d.Get("network").(string)
+		record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
+			IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
+		})
+	}
 	if d.HasChange("network_view") {
 		record.NetworkView = d.Get("network_view").(string)
 	}
@@ -286,20 +301,24 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 	if d.HasChange("zone") {
 		record.NetworkView = d.Get("zone").(string)
 	}
-	if d.HasChange("ip_v4_addresses") {
-		var ipAddressList []map[string]interface{}
-		for _, address := range record.IPv4Addrs {
-			ipAddressList = append(ipAddressList, map[string]interface{}{
-				"ref":                address.Ref,
-				"ip_address":         address.IPAddress,
-				"hostname":           address.Host,
-				"network":            address.CIDR,
-				"mac_address":        address.Mac,
-				"configure_for_dhcp": address.ConfigureForDHCP,
-			})
-		}
+	if d.HasChange("ip_v4_address") {
+		ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
+		record.IPv4Addrs = []infoblox.IPv4Addr{}
+		for _, address := range ipAddressList {
+			var ipv4Addr infoblox.IPv4Addr
 
-		d.Set("ip_v4_addresses", ipAddressList)
+			prettyPrint(address)
+			ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
+			if address.(map[string]interface{})["hostname"] != "" {
+				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
+			}
+
+			ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
+			if address.(map[string]interface{})["mac_address"].(string) != "" {
+				ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
+			}
+			record.IPv4Addrs = append(record.IPv4Addrs, ipv4Addr)
+		}
 	}
 	if d.HasChange("extensible_attributes") {
 		eaMap := d.Get("extensible_attributes").(map[string]interface{})
