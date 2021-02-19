@@ -21,7 +21,7 @@ func (c *Client) GetEADefinitions(force bool) error {
 		"_return_fields": "name,default_value,type,min,max,list_values",
 	}
 	queryParamString := c.BuildQuery(queryParams)
-	request, err := c.CreateJSONRequest(http.MethodGet, fmt.Sprintf("%s%s", eaDefintionBasePath, queryParamString), nil)
+	request, err := c.CreateJSONRequest(http.MethodGet, fmt.Sprintf("%s?%s", eaDefintionBasePath, queryParamString), nil)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (c *Client) GetEADefinitions(force bool) error {
 
 // ConvertEAsToJSONString converts extensible attributes to json format
 func (c *Client) ConvertEAsToJSONString(eas ExtensibleAttribute) (map[string]string, error) {
-	var ret map[string]string
+	ret := make(map[string]string)
 	if len(c.eaDefinitions) == 0 {
 		c.GetEADefinitions(false)
 	}

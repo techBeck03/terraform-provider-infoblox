@@ -30,7 +30,7 @@ func dataSourceHostRecord() *schema.Resource {
 				Computed:    true,
 			},
 			"enable_dns": {
-				Type:        schema.TypeString,
+				Type:        schema.TypeBool,
 				Description: "Enable for DNS",
 				Computed:    true,
 			},
@@ -57,6 +57,45 @@ func dataSourceHostRecord() *schema.Resource {
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+				},
+			},
+			"ip_v4_addresses": {
+				Type:        schema.TypeList,
+				Description: "IPv4 addresses associated with host record",
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ref": {
+							Type:        schema.TypeString,
+							Description: "Reference id of address object",
+							Computed:    true,
+						},
+						"ip_address": {
+							Type:        schema.TypeString,
+							Description: "IP address",
+							Computed:    true,
+						},
+						"hostname": {
+							Type:        schema.TypeString,
+							Description: "Hostname associated with IP address",
+							Computed:    true,
+						},
+						"network": {
+							Type:        schema.TypeString,
+							Description: "Network associated with IP address",
+							Computed:    true,
+						},
+						"mac_address": {
+							Type:        schema.TypeString,
+							Description: "MAC address associated with IP address",
+							Computed:    true,
+						},
+						"configure_for_dhcp": {
+							Type:        schema.TypeBool,
+							Description: "Configure IP for DHCP",
+							Computed:    true,
+						},
+					},
 				},
 			},
 			"extensible_attributes": {
@@ -92,7 +131,12 @@ func dataSourceHostRecordRead(ctx context.Context, d *schema.ResourceData, m int
 		return diags
 	}
 
-	queryParams := d.Get("query_params").(map[string]string)
+	queryParams := d.Get("query_params").(map[string]interface{})
+	var resolvedQueryParams map[string]string
+
+	for k, v := range queryParams {
+		resolvedQueryParams[k] = v.(string)
+	}
 
 	if ref != "" {
 		r, err := client.GetHostRecordByRef(ref, nil)
@@ -104,7 +148,7 @@ func dataSourceHostRecordRead(ctx context.Context, d *schema.ResourceData, m int
 	} else {
 		queryParams["name"] = hostname
 		queryParams["network_view"] = networkView
-		r, err := client.GetHostRecordByQuery(queryParams)
+		r, err := client.GetHostRecordByQuery(resolvedQueryParams)
 		if err != nil {
 			diags = append(diags, diag.FromErr(err)...)
 			return diags

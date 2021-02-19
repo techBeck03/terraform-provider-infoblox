@@ -16,39 +16,45 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_HOSTNAME", nil),
+				Description: "Infoblox server hostname",
 			},
 			"port": {
 				Type:        schema.TypeString,
-				Default:     "443",
-				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_PORT", nil),
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_PORT", 443),
+				Description: "Infoblox server port",
 			},
 			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_USERNAME", nil),
+				Description: "Infoblox server username",
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_PASSWORD", nil),
+				Description: "Infoblox server password",
 			},
-			"version": {
+			"wapi_version": {
 				Type:        schema.TypeString,
-				Default:     "2.11",
-				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_VERSION", nil),
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_VERSION", "2.11"),
+				Description: "Infoblox server wapi version",
 			},
 			"disable_tls_verification": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_DISABLE_TLS", false),
+				Description: "Disable tls verification",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"host_record": resourceHostRecord(),
+			"infoblox_host_record": resourceHostRecord(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"host_record": dataSourceHostRecord(),
+			"infoblox_host_record": dataSourceHostRecord(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
@@ -59,7 +65,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	port := d.Get("port").(string)
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
-	version := d.Get("version").(string)
+	wapiVersion := d.Get("wapi_version").(string)
 	disableTLS := d.Get("disable_tls_verification").(bool)
 
 	// Warning or errors can be collected in a slice type
@@ -70,7 +76,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		Port:                   port,
 		Username:               username,
 		Password:               password,
-		Version:                version,
+		Version:                wapiVersion,
 		DisableTLSVerification: disableTLS,
 	}
 

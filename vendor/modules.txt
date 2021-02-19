@@ -21,6 +21,7 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
+## explicit
 github.com/hashicorp/go-cty/cty
 github.com/hashicorp/go-cty/cty/convert
 github.com/hashicorp/go-cty/cty/gocty
@@ -53,6 +54,8 @@ github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes
 ## explicit
 github.com/hashicorp/terraform-plugin-sdk/v2/diag
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema
+github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure
+github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation
 github.com/hashicorp/terraform-plugin-sdk/v2/internal/addrs
 github.com/hashicorp/terraform-plugin-sdk/v2/internal/configs/configschema
 github.com/hashicorp/terraform-plugin-sdk/v2/internal/configs/hcl2shim
@@ -81,7 +84,7 @@ github.com/mitchellh/mapstructure
 github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
-# github.com/techBeck03/infoblox-go-sdk v0.0.2-alpha
+# github.com/techBeck03/infoblox-go-sdk v0.0.6-alpha
 ## explicit
 github.com/techBeck03/infoblox-go-sdk
 # github.com/vmihailenco/msgpack v4.0.4+incompatible
