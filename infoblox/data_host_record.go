@@ -8,21 +8,32 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
+var (
+	dataHostRecordRequiredSearchFields = []string{
+		"hostname",
+		"ref",
+	}
+)
+
 func dataSourceHostRecord() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceHostRecordRead,
 		Schema: map[string]*schema.Schema{
 			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of host record object",
-				Optional:    true,
-				Computed:    true,
+				Type:          schema.TypeString,
+				Description:   "Reference id of host record object",
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hostname"},
+				AtLeastOneOf:  dataHostRecordRequiredSearchFields,
 			},
 			"hostname": {
-				Type:        schema.TypeString,
-				Description: "Hostname of host record",
-				Optional:    true,
-				Computed:    true,
+				Type:          schema.TypeString,
+				Description:   "Hostname of host record",
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"ref"},
+				AtLeastOneOf:  dataHostRecordRequiredSearchFields,
 			},
 			"comment": {
 				Type:        schema.TypeString,
@@ -59,8 +70,8 @@ func dataSourceHostRecord() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"ip_v4_addresses": {
-				Type:        schema.TypeList,
+			"ip_v4_address": {
+				Type:        schema.TypeSet,
 				Description: "IPv4 addresses associated with host record",
 				Computed:    true,
 				Elem: &schema.Resource{
@@ -121,18 +132,8 @@ func dataSourceHostRecordRead(ctx context.Context, d *schema.ResourceData, m int
 	hostname := d.Get("hostname").(string)
 	networkView := d.Get("network_view").(string)
 
-	if ref == "" && (hostname == "" || networkView == "") {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Error retrieving host record",
-			Detail:   "Either `ref` or `hostname` + `network_view` must be supplied",
-		})
-
-		return diags
-	}
-
 	queryParams := d.Get("query_params").(map[string]interface{})
-	var resolvedQueryParams map[string]string
+	resolvedQueryParams := make(map[string]string)
 
 	for k, v := range queryParams {
 		resolvedQueryParams[k] = v.(string)
@@ -146,14 +147,24 @@ func dataSourceHostRecordRead(ctx context.Context, d *schema.ResourceData, m int
 		}
 		record = r
 	} else {
-		queryParams["name"] = hostname
-		queryParams["network_view"] = networkView
+		resolvedQueryParams["name"] = hostname
+		if networkView != "" {
+			resolvedQueryParams["network_view"] = networkView
+		}
 		r, err := client.GetHostRecordByQuery(resolvedQueryParams)
 		if err != nil {
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
-		record = r
+		if len(r) > 1 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Multiple data results found",
+				Detail:   "The provided hostname matched multiple record hosts",
+			})
+			return diags
+		}
+		record = r[0]
 	}
 
 	check := convertHostRecordToResourceData(client, d, &record)

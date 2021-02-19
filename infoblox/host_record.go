@@ -49,7 +49,6 @@ func resourceHostRecord() *schema.Resource {
 				Type:             schema.TypeString,
 				Description:      "Network for host record in CIDR notation",
 				Optional:         true,
-				Computed:         true,
 				ForceNew:         true,
 				ConflictsWith:    []string{"ip_v4_address"},
 				AtLeastOneOf:     hostRecordRequiredIPFields,
@@ -98,10 +97,11 @@ func resourceHostRecord() *schema.Resource {
 							Computed:    true,
 						},
 						"ip_address": {
-							Type:        schema.TypeString,
-							Description: "IP address",
-							Required:    true,
-							ForceNew:    true,
+							Type:             schema.TypeString,
+							Description:      "IP address",
+							Required:         true,
+							ForceNew:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 						},
 						"hostname": {
 							Type:        schema.TypeString,
