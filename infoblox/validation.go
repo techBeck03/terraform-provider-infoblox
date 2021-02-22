@@ -3,7 +3,6 @@ package infoblox
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 
@@ -21,8 +20,6 @@ var (
 
 // func validateEa(eaMap map[string]interface{}) (diags diag.Diagnostics) {
 func validateEa(i interface{}, p cty.Path) (diags diag.Diagnostics) {
-	log.Printf("%+v", p)
-	prettyPrint(i)
 	for _, v := range i.(map[string]interface{}) {
 		var eaValue map[string]interface{}
 		json.Unmarshal([]byte(v.(string)), &eaValue)
@@ -62,9 +59,8 @@ func eaSuppressDiff(k, old, new string, d *schema.ResourceData) bool {
 	areEqual, err := areEqualJSON(old, new)
 	if err != nil {
 		return false
-	} else {
-		return areEqual
 	}
+	return areEqual
 }
 
 func areEqualJSON(s1, s2 string) (bool, error) {

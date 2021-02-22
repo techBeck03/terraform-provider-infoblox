@@ -53,6 +53,7 @@ github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes
 # github.com/hashicorp/terraform-plugin-sdk/v2 v2.4.3
 ## explicit
 github.com/hashicorp/terraform-plugin-sdk/v2/diag
+github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation
@@ -84,7 +85,7 @@ github.com/mitchellh/mapstructure
 github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
-# github.com/techBeck03/infoblox-go-sdk v0.0.7-alpha
+# github.com/techBeck03/infoblox-go-sdk v0.0.13-alpha
 ## explicit
 github.com/techBeck03/infoblox-go-sdk
 # github.com/vmihailenco/msgpack v4.0.4+incompatible

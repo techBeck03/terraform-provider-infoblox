@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
@@ -26,6 +27,9 @@ func resourceHostRecord() *schema.Resource {
 		// Importer: &schema.ResourceImporter{
 		// 	State: schema.ImportStatePassthrough,
 		// },
+		CustomizeDiff: customdiff.Sequence(
+			eaCustomDiff,
+		),
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
@@ -85,7 +89,6 @@ func resourceHostRecord() *schema.Resource {
 				Type:          schema.TypeSet,
 				Description:   "IPv4 addresses associated with host record",
 				Optional:      true,
-				ForceNew:      true,
 				Computed:      true,
 				ConflictsWith: []string{"network"},
 				AtLeastOneOf:  hostRecordRequiredIPFields,
@@ -221,6 +224,12 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 		record.ExtensibleAttributes = &eas
 	}
 
+	if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+		for k, v := range *client.OrchestratorEAs {
+			(*record.ExtensibleAttributes)[k] = v
+		}
+	}
+
 	return &record, nil
 }
 
@@ -257,7 +266,6 @@ func resourceHostRecordCreate(ctx context.Context, d *schema.ResourceData, m int
 		return diags
 	}
 
-	prettyPrint(record)
 	err = client.CreateHostRecord(record)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
@@ -307,7 +315,6 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 		for _, address := range ipAddressList {
 			var ipv4Addr infoblox.IPv4Addr
 
-			prettyPrint(address)
 			ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
 			if address.(map[string]interface{})["hostname"] != "" {
 				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
@@ -329,6 +336,11 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 				return diags
 			}
 			record.ExtensibleAttributes = &eas
+		}
+		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+			for k, v := range *client.OrchestratorEAs {
+				(*record.ExtensibleAttributes)[k] = v
+			}
 		}
 	}
 	changedRecord, err := client.UpdateHostRecord(d.Id(), record)

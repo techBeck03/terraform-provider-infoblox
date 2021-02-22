@@ -49,6 +49,17 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("INFOBLOX_DISABLE_TLS", false),
 				Description: "Disable tls verification",
 			},
+			"orchestrator_extensible_attributes": {
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes applied to all objects configured by provider",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"infoblox_host_record": resourceHostRecord(),
@@ -88,6 +99,15 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	}
 
 	client := infoblox.New(config)
+
+	eaMap := d.Get("orchestrator_extensible_attributes").(map[string]interface{})
+	if len(eaMap) > 0 {
+		eas, err := createExtensibleAttributesFromJSON(&client, eaMap)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		client.OrchestratorEAs = &eas
+	}
 
 	return &client, diags
 }
