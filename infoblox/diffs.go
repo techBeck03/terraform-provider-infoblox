@@ -30,3 +30,26 @@ func eaCustomDiff(_ context.Context, diff *schema.ResourceDiff, v interface{}) e
 	}
 	return nil
 }
+
+func optionCustomDiff(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	old, new := diff.GetChange("option")
+	defaultFlag := false
+	var leaseOption map[string]interface{}
+	optionList := old.(*schema.Set).List()
+	if len(optionList) > 0 {
+		for _, option := range optionList {
+			if option.(map[string]interface{})["code"].(int) == 51 {
+				defaultFlag = true
+				leaseOption = option.(map[string]interface{})
+				break
+			}
+		}
+		if defaultFlag {
+			newOptions := new.(*schema.Set).List()
+			newOptions = append(newOptions, leaseOption)
+			diff.SetNew("option", newOptions)
+		}
+
+	}
+	return nil
+}

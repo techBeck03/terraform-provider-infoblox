@@ -10,7 +10,7 @@ import (
 
 var (
 	dataNetworkRequiredSearchFields = []string{
-		"hostname",
+		"cidr",
 		"ref",
 	}
 )
@@ -24,10 +24,10 @@ func dataSourceNetwork() *schema.Resource {
 				Description:   "Reference id of network object",
 				Optional:      true,
 				Computed:      true,
-				ConflictsWith: []string{"hostname"},
+				ConflictsWith: []string{"cidr"},
 				AtLeastOneOf:  dataNetworkRequiredSearchFields,
 			},
-			"network": {
+			"cidr": {
 				Type:          schema.TypeString,
 				Description:   "CIDR of network",
 				Optional:      true,
@@ -40,7 +40,7 @@ func dataSourceNetwork() *schema.Resource {
 				Description: "Comment string",
 				Computed:    true,
 			},
-			"disable": {
+			"disable_dhcp": {
 				Type:        schema.TypeBool,
 				Description: "Disable for DHCP",
 				Computed:    true,
@@ -59,7 +59,7 @@ func dataSourceNetwork() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"members": {
+			"member": {
 				Type:        schema.TypeSet,
 				Description: "Grid members associated with network",
 				Computed:    true,
@@ -88,7 +88,7 @@ func dataSourceNetwork() *schema.Resource {
 					},
 				},
 			},
-			"options": {
+			"option": {
 				Type:        schema.TypeSet,
 				Description: "DHCP options associated with network",
 				Computed:    true,
@@ -99,7 +99,7 @@ func dataSourceNetwork() *schema.Resource {
 							Description: "Name of DHCP option",
 							Computed:    true,
 						},
-						"num": {
+						"code": {
 							Type:        schema.TypeInt,
 							Description: "Option numberic id",
 							Computed:    true,
@@ -142,7 +142,7 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	var record infoblox.Network
 
 	ref := d.Get("ref").(string)
-	network := d.Get("network").(string)
+	cidr := d.Get("cidr").(string)
 	networkView := d.Get("network_view").(string)
 
 	queryParams := d.Get("query_params").(map[string]interface{})
@@ -160,7 +160,7 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 		}
 		record = r
 	} else {
-		resolvedQueryParams["network"] = network
+		resolvedQueryParams["network"] = cidr
 		if networkView != "" {
 			resolvedQueryParams["network_view"] = networkView
 		}

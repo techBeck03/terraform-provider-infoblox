@@ -11,39 +11,30 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
-var (
-	networkRequiredIPFields = []string{
-		"network",
-		"ip_v4_address",
-	}
-)
-
 func resourceNetwork() *schema.Resource {
 	return &schema.Resource{
-		// CreateContext: resourceNetworkCreate,
-		ReadContext: resourceNetworkRead,
-		// UpdateContext: resourceNetworkUpdate,
-		// DeleteContext: resourceNetworkDelete,
+		CreateContext: resourceNetworkCreate,
+		ReadContext:   resourceNetworkRead,
+		UpdateContext: resourceNetworkUpdate,
+		DeleteContext: resourceNetworkDelete,
 		// Importer: &schema.ResourceImporter{
 		// 	State: schema.ImportStatePassthrough,
 		// },
 		CustomizeDiff: customdiff.Sequence(
 			eaCustomDiff,
+			optionCustomDiff,
 		),
 		Schema: map[string]*schema.Schema{
 			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of network object",
-				Computed:      true,
-				ConflictsWith: []string{"hostname"},
-				AtLeastOneOf:  dataNetworkRequiredSearchFields,
+				Type:        schema.TypeString,
+				Description: "Reference id of network object",
+				Computed:    true,
 			},
-			"network": {
-				Type:          schema.TypeString,
-				Description:   "CIDR of network",
-				Required:      true,
-				ConflictsWith: []string{"ref"},
-				AtLeastOneOf:  dataNetworkRequiredSearchFields,
+			"cidr": {
+				Type:             schema.TypeString,
+				Description:      "CIDR of network",
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
 			"comment": {
 				Type:        schema.TypeString,
@@ -51,11 +42,22 @@ func resourceNetwork() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
-			"disable": {
+			"disable_dhcp": {
 				Type:        schema.TypeBool,
 				Description: "Disable for DHCP",
 				Optional:    true,
 				Computed:    true,
+			},
+			"grid_ref": {
+				Type:         schema.TypeString,
+				Description:  "Ref for grid needed for restarting services",
+				Optional:     true,
+				RequiredWith: []string{"restart_if_needed"},
+			},
+			"restart_if_needed": {
+				Type:        schema.TypeBool,
+				Description: "Restart dhcp services if needed",
+				Optional:    true,
 			},
 			"network_view": {
 				Type:        schema.TypeString,
@@ -64,19 +66,20 @@ func resourceNetwork() *schema.Resource {
 				Computed:    true,
 			},
 			"member": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Description: "Grid members associated with network",
 				Optional:    true,
-				Computed:    true,
+				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"struct": {
 							Type:             schema.TypeString,
 							Description:      "Struct type of member",
-							Required:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"DHCPMEMBER", "MSDHCPSERVER"}, true)),
+							Optional:         true,
+							Default:          "dhcpmember",
+							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"dhcpmember", "msdhcpserver"}, true)),
 							StateFunc: func(val interface{}) string {
-								return strings.ToUpper(val.(string))
+								return strings.ToLower(val.(string))
 							},
 						},
 						"ip_v4_address": {
@@ -84,6 +87,7 @@ func resourceNetwork() *schema.Resource {
 							Description:      "IPv4 address",
 							Optional:         true,
 							Computed:         true,
+							ConflictsWith:    []string{"member.0.ip_v6_address"},
 							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 						},
 						"ip_v6_address": {
@@ -91,6 +95,7 @@ func resourceNetwork() *schema.Resource {
 							Description:      "IPv6 address",
 							Optional:         true,
 							Computed:         true,
+							ConflictsWith:    []string{"member.0.ip_v4_address"},
 							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv6Address),
 						},
 						"hostname": {
@@ -104,6 +109,7 @@ func resourceNetwork() *schema.Resource {
 			"option": {
 				Type:        schema.TypeSet,
 				Description: "DHCP options associated with network",
+				Optional:    true,
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -120,7 +126,8 @@ func resourceNetwork() *schema.Resource {
 						"use_option": {
 							Type:        schema.TypeBool,
 							Description: "Use this dhcp option",
-							Required:    true,
+							Optional:    true,
+							Default:     true,
 						},
 						"value": {
 							Type:        schema.TypeString,
@@ -130,15 +137,19 @@ func resourceNetwork() *schema.Resource {
 						"vendor_class": {
 							Type:        schema.TypeString,
 							Description: "Value of option",
+							Optional:    true,
 							Default:     "DHCP",
 						},
 					},
 				},
 			},
 			"extensible_attributes": {
-				Type:        schema.TypeMap,
-				Description: "Extensible attributes of network",
-				Computed:    true,
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes of network",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -151,9 +162,9 @@ func convertNetworkToResourceData(client *infoblox.Client, d *schema.ResourceDat
 	var diags diag.Diagnostics
 
 	d.Set("ref", network.Ref)
-	d.Set("network", network.CIDR)
+	d.Set("cidr", network.CIDR)
 	d.Set("comment", network.Comment)
-	d.Set("disable", network.DisableDHCP)
+	d.Set("disable_dhcp", network.DisableDHCP)
 	d.Set("network_view", network.NetworkView)
 
 	var memberList []map[string]interface{}
@@ -179,7 +190,7 @@ func convertNetworkToResourceData(client *infoblox.Client, d *schema.ResourceDat
 		})
 	}
 
-	d.Set("options", optionList)
+	d.Set("option", optionList)
 
 	eas, err := client.ConvertEAsToJSONString(*network.ExtensibleAttributes)
 	if err != nil {
@@ -191,55 +202,57 @@ func convertNetworkToResourceData(client *infoblox.Client, d *schema.ResourceDat
 	return diags
 }
 
-// func convertResourceDataToNetwork(client *infoblox.Client, d *schema.ResourceData) (*infoblox.Network, error) {
-// 	var network infoblox.Network
+func convertResourceDataToNetwork(client *infoblox.Client, d *schema.ResourceData) (*infoblox.Network, error) {
+	var network infoblox.Network
 
-// 	network.Hostname = d.Get("hostname").(string)
-// 	network.Comment = d.Get("comment").(string)
-// 	network := d.Get("network").(string)
-// 	network.EnableDNS = newBool(d.Get("enable_dns").(bool))
-// 	network.NetworkView = d.Get("network_view").(string)
-// 	network.View = d.Get("view").(string)
-// 	network.Zone = d.Get("zone").(string)
+	network.CIDR = d.Get("cidr").(string)
+	network.Comment = d.Get("comment").(string)
+	network.DisableDHCP = newBool(d.Get("disable_dhcp").(bool))
+	network.NetworkView = d.Get("network_view").(string)
 
-// 	ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
-// 	network.IPv4Addrs = []infoblox.IPv4Addr{}
-// 	if len(ipAddressList) == 0 {
-// 		network.IPv4Addrs = append(network.IPv4Addrs, infoblox.IPv4Addr{
-// 			IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
-// 		})
-// 	} else {
-// 		for _, address := range ipAddressList {
-// 			var ipv4Addr infoblox.IPv4Addr
-// 			ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
-// 			if address.(map[string]interface{})["hostname"] != "" {
-// 				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
-// 			}
-// 			ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
-// 			if address.(map[string]interface{})["mac_address"].(string) != "" {
-// 				ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
-// 			}
-// 			network.IPv4Addrs = append(network.IPv4Addrs, ipv4Addr)
-// 		}
-// 	}
+	memberList := d.Get("member").([]interface{})
+	network.Members = []infoblox.Member{}
+	if len(memberList) > 0 {
+		for _, member := range memberList {
+			network.Members = append(network.Members, infoblox.Member{
+				StructType:  member.(map[string]interface{})["struct"].(string),
+				Hostname:    member.(map[string]interface{})["hostname"].(string),
+				IPV4Address: member.(map[string]interface{})["ip_v4_address"].(string),
+				IPV6Address: member.(map[string]interface{})["ip_v6_address"].(string),
+			})
+		}
+	}
 
-// 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
-// 	if len(eaMap) > 0 {
-// 		eas, err := createExtensibleAttributesFromJSON(client, eaMap)
-// 		if err != nil {
-// 			return &network, err
-// 		}
-// 		network.ExtensibleAttributes = &eas
-// 	}
+	optionList := d.Get("option").(*schema.Set).List()
+	network.Options = []infoblox.Option{}
+	if len(optionList) > 0 {
+		for _, option := range optionList {
+			network.Options = append(network.Options, infoblox.Option{
+				Name:        option.(map[string]interface{})["name"].(string),
+				UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
+				Value:       option.(map[string]interface{})["value"].(string),
+				VendorClass: option.(map[string]interface{})["vendor_class"].(string),
+			})
+		}
+	}
 
-// 	if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
-// 		for k, v := range *client.OrchestratorEAs {
-// 			(*network.ExtensibleAttributes)[k] = v
-// 		}
-// 	}
+	eaMap := d.Get("extensible_attributes").(map[string]interface{})
+	if len(eaMap) > 0 {
+		eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+		if err != nil {
+			return &network, err
+		}
+		network.ExtensibleAttributes = &eas
+	}
 
-// 	return &network, nil
-// }
+	if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+		for k, v := range *client.OrchestratorEAs {
+			(*network.ExtensibleAttributes)[k] = v
+		}
+	}
+
+	return &network, nil
+}
 
 func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
@@ -263,114 +276,160 @@ func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
-// func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	client := m.(*infoblox.Client)
+func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	client := m.(*infoblox.Client)
 
-// 	var diags diag.Diagnostics
+	var diags diag.Diagnostics
 
-// 	network, err := convertResourceDataToNetwork(client, d)
-// 	if err != nil {
-// 		diags = append(diags, diag.FromErr(err)...)
-// 		return diags
-// 	}
+	network, err := convertResourceDataToNetwork(client, d)
+	if err != nil {
+		diags = append(diags, diag.FromErr(err)...)
+		return diags
+	}
 
-// 	err = client.CreateNetwork(network)
-// 	if err != nil {
-// 		diags = append(diags, diag.FromErr(err)...)
-// 		return diags
-// 	}
+	err = client.CreateNetwork(network)
+	if err != nil {
+		diags = append(diags, diag.FromErr(err)...)
+		return diags
+	}
 
-// 	if diags.HasError() {
-// 		return diags
-// 	}
+	if diags.HasError() {
+		return diags
+	}
 
-// 	d.SetId(network.Ref)
-// 	return resourceNetworkRead(ctx, d, m)
-// }
+	if d.Get("restart_if_needed").(bool) && len(network.Members) == 1 {
+		err = client.RestartServices(d.Get("grid_ref").(string), infoblox.GridServiceRestartRequest{
+			RestartOption: "RESTART_IF_NEEDED",
+			Services:      []string{"DHCP"},
+			Members:       []string{network.Members[0].Hostname},
+		})
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+	}
 
-// func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
-// 	client := m.(*infoblox.Client)
+	d.SetId(network.Ref)
+	return resourceNetworkRead(ctx, d, m)
+}
 
-// 	var network infoblox.Network
+func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
+	client := m.(*infoblox.Client)
 
-// 	if d.HasChange("hostname") {
-// 		network.Hostname = d.Get("hostname").(string)
-// 	}
-// 	if d.HasChange("comment") {
-// 		network.Comment = d.Get("comment").(string)
-// 	}
-// 	if d.HasChange("enable_dns") {
-// 		network.EnableDNS = newBool(d.Get("enable_dns").(bool))
-// 	}
-// 	if d.HasChange("network") {
-// 		network := d.Get("network").(string)
-// 		network.IPv4Addrs = append(network.IPv4Addrs, infoblox.IPv4Addr{
-// 			IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
-// 		})
-// 	}
-// 	if d.HasChange("network_view") {
-// 		network.NetworkView = d.Get("network_view").(string)
-// 	}
-// 	if d.HasChange("view") {
-// 		network.NetworkView = d.Get("view").(string)
-// 	}
-// 	if d.HasChange("zone") {
-// 		network.NetworkView = d.Get("zone").(string)
-// 	}
-// 	if d.HasChange("ip_v4_address") {
-// 		ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
-// 		network.IPv4Addrs = []infoblox.IPv4Addr{}
-// 		for _, address := range ipAddressList {
-// 			var ipv4Addr infoblox.IPv4Addr
+	var network infoblox.Network
 
-// 			ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
-// 			if address.(map[string]interface{})["hostname"] != "" {
-// 				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
-// 			}
+	if d.HasChange("cidr") {
+		network.CIDR = d.Get("cidr").(string)
+	}
+	if d.HasChange("comment") {
+		network.Comment = d.Get("comment").(string)
+	}
+	if d.HasChange("disable_dhcp") {
+		network.DisableDHCP = newBool(d.Get("disable_dhcp").(bool))
+	}
+	if d.HasChange("grid_ref") {
+		network.Comment = d.Get("grid_ref").(string)
+	}
+	if d.HasChange("restart_if_needed") {
+		network.DisableDHCP = newBool(d.Get("restart_if_needed").(bool))
+	}
+	if d.HasChange("network_view") {
+		network.NetworkView = d.Get("network_view").(string)
+	}
+	if d.HasChange("member") {
+		memberList := d.Get("member").([]interface{})
+		network.Members = []infoblox.Member{}
+		if len(memberList) > 0 {
+			for _, member := range memberList {
+				network.Members = append(network.Members, infoblox.Member{
+					StructType:  member.(map[string]interface{})["struct"].(string),
+					Hostname:    member.(map[string]interface{})["hostname"].(string),
+					IPV4Address: member.(map[string]interface{})["ip_v4_address"].(string),
+					IPV6Address: member.(map[string]interface{})["ip_v6_address"].(string),
+				})
+			}
+		}
+	}
+	if d.HasChange("option") {
+		optionList := d.Get("option").(*schema.Set).List()
+		network.Options = []infoblox.Option{}
+		if len(optionList) > 0 {
+			for _, option := range optionList {
+				network.Options = append(network.Options, infoblox.Option{
+					Name:        option.(map[string]interface{})["name"].(string),
+					UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
+					Value:       option.(map[string]interface{})["value"].(string),
+					VendorClass: option.(map[string]interface{})["vendor_class"].(string),
+				})
+			}
+		}
+	}
+	if d.HasChange("extensible_attributes") {
+		eaMap := d.Get("extensible_attributes").(map[string]interface{})
+		if len(eaMap) > 0 {
+			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+			if err != nil {
+				diags = append(diags, diag.FromErr(err)...)
+				return diags
+			}
+			network.ExtensibleAttributes = &eas
+		}
+		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+			for k, v := range *client.OrchestratorEAs {
+				(*network.ExtensibleAttributes)[k] = v
+			}
+		}
+	}
+	changedNetwork, err := client.UpdateNetwork(d.Id(), network)
+	if err != nil {
+		diags = append(diags, diag.FromErr(err)...)
+		return diags
+	}
 
-// 			ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
-// 			if address.(map[string]interface{})["mac_address"].(string) != "" {
-// 				ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
-// 			}
-// 			network.IPv4Addrs = append(network.IPv4Addrs, ipv4Addr)
-// 		}
-// 	}
-// 	if d.HasChange("extensible_attributes") {
-// 		eaMap := d.Get("extensible_attributes").(map[string]interface{})
-// 		if len(eaMap) > 0 {
-// 			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
-// 			if err != nil {
-// 				diags = append(diags, diag.FromErr(err)...)
-// 				return diags
-// 			}
-// 			network.ExtensibleAttributes = &eas
-// 		}
-// 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
-// 			for k, v := range *client.OrchestratorEAs {
-// 				(*network.ExtensibleAttributes)[k] = v
-// 			}
-// 		}
-// 	}
-// 	changedRecord, err := client.UpdateNetwork(d.Id(), network)
-// 	if err != nil {
-// 		diags = append(diags, diag.FromErr(err)...)
-// 		return diags
-// 	}
+	d.SetId(changedNetwork.Ref)
+	if d.Get("restart_if_needed").(bool) && len(network.Members) == 1 {
+		err := client.RestartServices(d.Get("grid_ref").(string), infoblox.GridServiceRestartRequest{
+			RestartOption: "RESTART_IF_NEEDED",
+			Services:      []string{"DHCP"},
+			Members:       []string{network.Members[0].Hostname},
+		})
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+	}
 
-// 	d.SetId(changedRecord.Ref)
-// 	return resourceNetworkRead(ctx, d, m)
-// }
+	return resourceNetworkRead(ctx, d, m)
+}
 
-// func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-// 	client := m.(*infoblox.Client)
+func resourceNetworkDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	client := m.(*infoblox.Client)
 
-// 	var diags diag.Diagnostics
-// 	ref := d.Id()
+	var diags diag.Diagnostics
+	ref := d.Id()
 
-// 	err := client.DeleteNetwork(ref)
-// 	if err != nil {
-// 		return diag.FromErr(err)
-// 	}
+	network, err := convertResourceDataToNetwork(client, d)
+	if err != nil {
+		diags = append(diags, diag.FromErr(err)...)
+		return diags
+	}
 
-// 	return diags
-// }
+	err = client.DeleteNetwork(ref)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if d.Get("restart_if_needed").(bool) && len(network.Members) == 1 {
+		err = client.RestartServices(d.Get("grid_ref").(string), infoblox.GridServiceRestartRequest{
+			RestartOption: "RESTART_IF_NEEDED",
+			Services:      []string{"DHCP"},
+			Members:       []string{network.Members[0].Hostname},
+		})
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+	}
+
+	return diags
+}

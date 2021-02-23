@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	gridBasePath     = "grid"
-	memberBasePath   = "member"
-	gridReturnFields = "name,service_status,dns_resolver_setting"
+	gridBasePath       = "grid"
+	memberBasePath     = "member"
+	gridReturnFields   = "name,service_status,dns_resolver_setting"
+	memberReturnFields = "config_addr_type,host_name,platform,service_type_configuration"
 )
 
 // GetGrids gets grid member list
@@ -37,10 +38,19 @@ func (c *Client) GetGrids(queryParams map[string]string) ([]Grid, error) {
 }
 
 // GetGridMembers gets grid member list
-func (c *Client) GetGridMembers() ([]GridMember, error) {
+func (c *Client) GetGridMembers(queryParams map[string]string) ([]GridMember, error) {
 	var ret []GridMember
 
-	request, err := c.CreateJSONRequest(http.MethodGet, fmt.Sprintf("%s", memberBasePath), nil)
+	if queryParams == nil {
+		queryParams = map[string]string{
+			"_return_fields": memberReturnFields,
+		}
+	} else {
+		queryParams["_return_fields"] = memberReturnFields
+	}
+
+	queryParamString := c.BuildQuery(queryParams)
+	request, err := c.CreateJSONRequest(http.MethodGet, fmt.Sprintf("%s?%s", memberBasePath, queryParamString), nil)
 	if err != nil {
 		return ret, err
 	}
