@@ -28,7 +28,7 @@ func resourceHostRecord() *schema.Resource {
 		// 	State: schema.ImportStatePassthrough,
 		// },
 		CustomizeDiff: customdiff.Sequence(
-			eaCustomDiff,
+			makeEACustomDiff("extensible_attributes"),
 		),
 		Schema: map[string]*schema.Schema{
 			"ref": {

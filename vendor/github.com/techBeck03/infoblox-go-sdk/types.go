@@ -49,8 +49,9 @@ type ExtensibleAttributeJSONMap map[string]ExtensibleAttributeJSONMapValue
 
 // ExtensibleAttributeJSONMapValue value of ea in terraform friendly JSON
 type ExtensibleAttributeJSONMapValue struct {
-	Value interface{} `json:"value,omitempty"`
-	Type  string      `json:"type,omitempty"`
+	Value             interface{}        `json:"value,omitempty"`
+	Type              string             `json:"type,omitempty"`
+	InheritanceSource *InheritanceSource `json:"inheritance_source,omitempty"`
 }
 
 // Network object
@@ -139,6 +140,7 @@ type FixedAddress struct {
 	NetworkView          string               `json:"network_view,omitempty"`
 	CIDR                 string               `json:"network,omitempty"`
 	Comment              string               `json:"comment,omitempty"`
+	Disable              *bool                `json:"disable,omitempty"`
 	IPAddress            string               `json:"ipv4addr,omitempty"`
 	Mac                  string               `json:"mac,omitempty"`
 	Hostname             string               `json:"name,omitempty"`

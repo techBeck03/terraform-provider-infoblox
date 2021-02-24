@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/techBeck03/infoblox-go-sdk"
 )
@@ -16,6 +17,29 @@ func prettyPrint(object interface{}) {
 
 func newBool(b bool) *bool {
 	return &b
+}
+
+func newExtensibleAttribute(ea infoblox.ExtensibleAttribute) *infoblox.ExtensibleAttribute {
+	return &ea
+}
+
+// Contains tells whether a contains x.
+func Contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
+
+// Keys returns the keys of a map[string]interface{} var as a slice
+func Keys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func createExtensibleAttributesFromJSON(client *infoblox.Client, eaMap map[string]interface{}) (eas infoblox.ExtensibleAttribute, err error) {
@@ -35,32 +59,25 @@ func createExtensibleAttributesFromJSON(client *infoblox.Client, eaMap map[strin
 	for k, v := range eaMap {
 		var eaValue infoblox.ExtensibleAttributeJSONMapValue
 		json.Unmarshal([]byte(v.(string)), &eaValue)
+		var ea infoblox.ExtensibleAttributeValue
 		switch eaValue.Type {
 		case "STRING":
-			eas[k] = infoblox.ExtensibleAttributeValue{
-				Value: eaValue.Value.(string),
-			}
+			ea.Value = eaValue.Value.(string)
 		case "ENUM":
-			eas[k] = infoblox.ExtensibleAttributeValue{
-				Value: eaValue.Value.(string),
-			}
+			ea.Value = eaValue.Value.(string)
 		case "EMAIL":
-			eas[k] = infoblox.ExtensibleAttributeValue{
-				Value: eaValue.Value.(string),
-			}
+			ea.Value = eaValue.Value.(string)
 		case "URL":
-			eas[k] = infoblox.ExtensibleAttributeValue{
-				Value: eaValue.Value.(string),
-			}
+			ea.Value = eaValue.Value.(string)
 		case "DATE":
-			eas[k] = infoblox.ExtensibleAttributeValue{
-				Value: eaValue.Value.(string),
-			}
+			ea.Value = eaValue.Value.(string)
 		case "INTEGER":
-			eas[k] = infoblox.ExtensibleAttributeValue{
-				Value: eaValue.Value.(int),
-			}
+			ea.Value = eaValue.Value.(int)
 		}
+		if strings.Contains(v.(string), "inheritance_source") {
+			ea.InheritanceSource = eaValue.InheritanceSource
+		}
+		eas[k] = ea
 	}
 
 	return eas, err
