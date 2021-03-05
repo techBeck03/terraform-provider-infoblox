@@ -240,8 +240,10 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd0=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/techBeck03/infoblox-go-sdk v0.0.24-alpha h1:fby029BdsxGJ+kQRljoV96mj1q1PniMpQet5y0jmc/M=
-github.com/techBeck03/infoblox-go-sdk v0.0.24-alpha/go.mod h1:miTvClw8XenPYZ9psw+71AmtlPmY2Lu0EPLBWJ0JIQw=
+github.com/techBeck03/go-ipmath v0.0.5 h1:1LGw4p71wtj6US5olGTGt1n5MqeOX9mykUOI6ygunME=
+github.com/techBeck03/go-ipmath v0.0.5/go.mod h1:VugtTa3vBBdfSTeYQQov/NzzXt40R+LtuFr15KWUhpY=
+github.com/techBeck03/infoblox-go-sdk v0.0.30-alpha h1:K0ucqw2iqCL0SawLaX1Sb9h2sP+fw2zVttCOG9+pM2k=
+github.com/techBeck03/infoblox-go-sdk v0.0.30-alpha/go.mod h1:miTvClw8XenPYZ9psw+71AmtlPmY2Lu0EPLBWJ0JIQw=
 github.com/ulikunitz/xz v0.5.5/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4ABRW8=
 github.com/ulikunitz/xz v0.5.8/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
 github.com/vmihailenco/msgpack v3.3.3+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=

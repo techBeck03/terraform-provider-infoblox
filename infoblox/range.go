@@ -4,12 +4,13 @@ import (
 	"context"
 	"net"
 	"strings"
+	"time"
 
-	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/techBeck03/go-ipmath"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
@@ -37,6 +38,8 @@ func resourceRange() *schema.Resource {
 			makeEACustomDiff("extensible_attributes"),
 			makeAddressCompareCustomDiff("start_address", "end_address"),
 			rangeForceNew,
+			makeCidrContainsIPCheck("cidr", []string{"start_address", "end_address"}),
+			makeLowerThanIPCheck("start_address", "end_address"),
 		),
 		Schema: map[string]*schema.Schema{
 			"ref": {
@@ -54,7 +57,7 @@ func resourceRange() *schema.Resource {
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "Network for range in CIDR notation",
-				Optional:         true,
+				Required:         true,
 				ForceNew:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
@@ -270,30 +273,28 @@ func resourceRangeCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	var diags diag.Diagnostics
 
-	if count, ok := d.GetOk("sequential_count"); ok {
-		cidr := d.Get("cidr").(string)
-		addresses, err := client.GetSequentialAddressRange(infoblox.AddressQuery{
-			CIDR:  cidr,
-			Count: count.(int),
-		})
-
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		d.Set("start_address", (*addresses)[0].IPAddress)
-		d.Set("end_address", (*addresses)[len(*addresses)-1].IPAddress)
-	}
-
 	addressRange, err := convertResourceDataToRange(client, d)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
-	err = client.CreateRange(addressRange)
-	if err != nil {
-		diags = append(diags, diag.FromErr(err)...)
-		return diags
+	count, countOk := d.GetOk("sequential_count")
+	if countOk {
+		err = client.CreateSequentialRange(addressRange, infoblox.AddressQuery{
+			CIDR:  addressRange.CIDR,
+			Count: count.(int),
+		})
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+	} else {
+		err = client.CreateRange(addressRange)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
 	}
 
 	if d.Get("restart_if_needed").(bool) && addressRange.Member != nil {
@@ -307,6 +308,8 @@ func resourceRangeCreate(ctx context.Context, d *schema.ResourceData, m interfac
 			return diags
 		}
 	}
+
+	time.Sleep(2 * time.Second)
 
 	if diags.HasError() {
 		return diags
@@ -328,80 +331,105 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		addressRange.DisableDHCP = newBool(d.Get("disable_dhcp").(bool))
 	}
 	if d.HasChange("sequential_count") {
+		addressRange.StartAddress = d.Get("start_address").(string)
 		old, new := d.GetChange("sequential_count")
 		if new.(int) < old.(int) {
-			addressRange.StartAddress = d.Get("start_address").(string)
-			endAddress := net.ParseIP(d.Get("end_address").(string))
-			for i := 0; i < old.(int)-new.(int); i++ {
-				endAddress = cidr.Dec(endAddress)
+			endAddress := ipmath.IP{
+				Address: net.ParseIP(d.Get("end_address").(string)),
 			}
-			addressRange.EndAddress = endAddress.String()
+			endAddressFinal, err := endAddress.Subtract(old.(int) - new.(int))
+			if err != nil {
+				d.Set("sequential_count", old.(int))
+				return diag.FromErr(err)
+			}
+			addressRange.EndAddress = endAddressFinal.String()
 		} else {
-			endAddress := net.ParseIP(d.Get("end_address").(string))
-			for i := 0; i < new.(int)-old.(int); i++ {
-				endAddress = cidr.Inc(endAddress)
+			endAddress := ipmath.IP{
+				Address: net.ParseIP(d.Get("end_address").(string)),
 			}
-			overlaps, err := client.CheckIfRangeContainsRange(infoblox.IPsWithinRangeQuery{
+			endAddressFinal, err := endAddress.Add(new.(int) - old.(int))
+			if err != nil {
+				d.Set("sequential_count", old.(int))
+				return diag.FromErr(err)
+			}
+			startAddress := ipmath.IP{
+				Address: net.ParseIP(d.Get("end_address").(string)),
+			}
+			startAddressFinal, err := startAddress.Inc()
+			if err != nil {
+				d.Set("sequential_count", old.(int))
+				return diag.FromErr(err)
+			}
+			check, err := client.GetSequentialAddressRange(infoblox.AddressQuery{
 				CIDR:         d.Get("cidr").(string),
-				Ref:          d.Get("ref").(string),
-				StartAddress: d.Get("start_address").(string),
-				EndAddress:   endAddress.String(),
+				StartAddress: startAddressFinal.String(),
+				EndAddress:   endAddressFinal.String(),
+				Count:        new.(int) - old.(int),
 			})
 			if err != nil {
 				d.Set("sequential_count", old.(int))
 				return diag.FromErr(err)
 			}
-			if overlaps == true {
+			if check == nil {
 				d.Set("sequential_count", old.(int))
-				return diag.Errorf("Sequential address count increase overlaps with another range")
+				return diag.Errorf("Sequential address count increase overlaps with another range or USED IP")
 			}
-			usedAddresses, err := client.GetUsedAddressesWithinRange(infoblox.AddressQuery{
-				CIDR:         d.Get("cidr").(string),
-				StartAddress: cidr.Inc(net.ParseIP(d.Get("end_address").(string))).String(),
-				EndAddress:   endAddress.String(),
-			})
-			if err != nil {
-				d.Set("sequential_count", old.(int))
-				return diag.FromErr(err)
-			}
-			if len((*usedAddresses)) > 0 {
-				d.Set("sequential_count", old.(int))
-				return diag.Errorf("Sequential address count increase overlaps with USED IP addresses")
-			}
-			addressRange.EndAddress = endAddress.String()
+			addressRange.EndAddress = endAddressFinal.String()
 		}
 	}
 
 	if d.HasChange("start_address") {
-		addressRange.StartAddress = d.Get("start_address").(string)
+		old, new := d.GetChange("start_address")
+		oldIP := ipmath.IP{
+			Address: net.ParseIP(old.(string)),
+		}
+		newIP := ipmath.IP{
+			Address: net.ParseIP(new.(string)),
+		}
+		if newIP.LT(oldIP.Address) {
+			endAddress, err := oldIP.Dec()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			_, err = client.GetSequentialAddressRange(infoblox.AddressQuery{
+				CIDR:         d.Get("cidr").(string),
+				StartAddress: newIP.Address.String(),
+				EndAddress:   endAddress.String(),
+				Count:        newIP.Difference(oldIP.Address),
+			})
+			if err != nil {
+				d.Set("start_address", old.(string))
+				return diag.Errorf("Decreasing the `start_address` causes an overlap with another range or USED IP")
+			}
+		}
+		addressRange.StartAddress = new.(string)
 	}
 
 	if d.HasChange("end_address") {
-		endAddress := net.ParseIP(d.Get("end_address").(string))
-		overlaps, err := client.CheckIfRangeContainsRange(infoblox.IPsWithinRangeQuery{
-			CIDR:         d.Get("cidr").(string),
-			Ref:          d.Get("ref").(string),
-			StartAddress: d.Get("start_address").(string),
-			EndAddress:   endAddress.String(),
-		})
-		if err != nil {
-			return diag.FromErr(err)
+		old, new := d.GetChange("end_address")
+		oldIP := ipmath.IP{
+			Address: net.ParseIP(old.(string)),
 		}
-		if overlaps == true {
-			return diag.Errorf("Sequential address count increase overlaps with another range")
+		newIP := ipmath.IP{
+			Address: net.ParseIP(new.(string)),
 		}
-		usedAddresses, err := client.GetUsedAddressesWithinRange(infoblox.AddressQuery{
-			CIDR:         d.Get("cidr").(string),
-			StartAddress: d.Get("start_address").(string),
-			EndAddress:   endAddress.String(),
-		})
-		if err != nil {
-			return diag.FromErr(err)
+		if newIP.GT(oldIP.Address) {
+			startAddress, err := oldIP.Inc()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			_, err = client.GetSequentialAddressRange(infoblox.AddressQuery{
+				CIDR:         d.Get("cidr").(string),
+				StartAddress: startAddress.String(),
+				EndAddress:   oldIP.Address.String(),
+				Count:        oldIP.Difference(newIP.Address),
+			})
+			if err != nil {
+				d.Set("end_address", old.(string))
+				return diag.Errorf("Increasing the `end_address` causes an overlap with another range or USED IP")
+			}
 		}
-		if len((*usedAddresses)) > 0 {
-			return diag.Errorf("Sequential address count increase overlaps with USED IP addresses")
-		}
-		addressRange.EndAddress = endAddress.String()
+		addressRange.EndAddress = new.(string)
 	}
 
 	memberList := d.Get("member").([]interface{})
@@ -455,6 +483,8 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	if diags.HasError() {
 		return diags
 	}
+
+	time.Sleep(2 * time.Second)
 
 	d.SetId(changedRange.Ref)
 	return resourceRangeRead(ctx, d, m)

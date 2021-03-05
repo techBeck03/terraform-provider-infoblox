@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/techBeck03/go-ipmath"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
@@ -33,17 +34,9 @@ func makeEACustomDiff(arg string) func(_ context.Context, diff *schema.ResourceD
 						return err
 					}
 					for k, v := range oldEAs {
-						if v.InheritanceSource != nil && v.Value == newEAs[k].Value {
+						if v.InheritanceSource != nil && (v.Value == newEAs[k].Value || newEAs[k].Value == nil) {
 							(eas)[k] = v
 						}
-						// e := reflect.ValueOf(&v).Elem()
-						// for i := 0; i < e.NumField(); i++ {
-						// 	// if e.Type().Field(i).Name == "InheritanceSource" && Contains(Keys(new.(map[string]interface{})), k) != true {
-
-						// 	if e.Type().Field(i).Name == "InheritanceSource" && new.(map[string]interface{})), k) != true {
-						// 		(eas)[k] = v
-						// 	}
-						// }
 					}
 				}
 			}
@@ -107,9 +100,42 @@ func rangeForceNew(_ context.Context, diff *schema.ResourceDiff, v interface{}) 
 	old, _ := diff.GetChange("sequential_count")
 	if _, ok := diff.GetOk("sequential_count"); ok && old == nil {
 		diff.ForceNew("sequential_count")
-	} else {
-		diff.ForceNew("start_address")
+	}
+	if _, ok := diff.GetOk("start_address"); ok && old != nil {
+		diff.ForceNew("sequential_count")
 	}
 
 	return nil
+}
+
+func makeCidrContainsIPCheck(cidrArg string, ipArgs []string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	return func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+		_, cidrNet, err := net.ParseCIDR(diff.Get(cidrArg).(string))
+		if err != nil {
+			return err
+		}
+		for _, ipArg := range ipArgs {
+			if ip, ok := diff.GetOk(ipArg); ok {
+				if cidrNet.Contains(net.ParseIP(ip.(string))) != true {
+					return fmt.Errorf("Argument: %s contains ip: %s which is not in CIDR: %s", ipArg, ip.(string), cidrNet)
+				}
+			}
+		}
+
+		return nil
+	}
+}
+
+func makeLowerThanIPCheck(lowerIP string, higherIP string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	return func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+		if lowerVal, ok := diff.GetOk(lowerIP); ok {
+			lowerIPObj := ipmath.IP{
+				Address: net.ParseIP(lowerVal.(string)),
+			}
+			if lowerIPObj.GTE(net.ParseIP(diff.Get(higherIP).(string))) {
+				return fmt.Errorf("`%s` must have an IP address lower than `%s`", lowerIP, higherIP)
+			}
+		}
+		return nil
+	}
 }

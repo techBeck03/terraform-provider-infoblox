@@ -2,7 +2,9 @@ package infoblox
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 )
 
 const (
@@ -56,6 +58,35 @@ func (c *Client) GetRangeByQuery(queryParams map[string]string) (Range, error) {
 	return ret, nil
 }
 
+// GetPaginatedCidrRanges gets ranges within CIDR by page
+func (c *Client) GetPaginatedCidrRanges(cidr string, pageID string) (rangePage RangeQueryResult, err error) {
+	var ret RangeQueryResult
+
+	queryParams := map[string]string{
+		"network":           cidr,
+		"_return_as_object": "1",
+		"_paging":           "1",
+		"_max_results":      "100",
+		"_return_fields":    rangeReturnFields,
+	}
+	if pageID != "" {
+		queryParams["_page_id"] = pageID
+	}
+
+	queryParamString := c.BuildQuery(queryParams)
+	request, err := c.CreateJSONRequest(http.MethodGet, fmt.Sprintf("%s?%s", rangeBasePath, queryParamString), nil)
+	if err != nil {
+		return rangePage, err
+	}
+
+	err = c.Call(request, &ret)
+	if err != nil {
+		return rangePage, err
+	}
+
+	return ret, nil
+}
+
 // CreateRange creates range
 func (c *Client) CreateRange(rangeObject *Range) error {
 	queryParams := map[string]string{
@@ -74,7 +105,7 @@ func (c *Client) CreateRange(rangeObject *Range) error {
 	return nil
 }
 
-// UpdateRange creates range
+// UpdateRange updates range
 func (c *Client) UpdateRange(ref string, rangeObject Range) (Range, error) {
 	var ret Range
 	queryParams := map[string]string{
@@ -93,7 +124,7 @@ func (c *Client) UpdateRange(ref string, rangeObject Range) (Range, error) {
 	return ret, nil
 }
 
-// DeleteRange creates range
+// DeleteRange deletes range
 func (c *Client) DeleteRange(ref string) error {
 	request, err := c.CreateJSONRequest(http.MethodDelete, fmt.Sprintf("%s", ref), nil)
 	if err != nil {
@@ -104,6 +135,57 @@ func (c *Client) DeleteRange(ref string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// CreateSequentialRange creates sequential address range
+func (c *Client) CreateSequentialRange(rangeObject *Range, query AddressQuery) error {
+	query.fillDefaults()
+	retryCount := 0
+	verified := false
+
+	for verified == false && retryCount <= query.Retries {
+		sequentialAddresses, err := c.GetSequentialAddressRange(query)
+		if err != nil {
+			return err
+		}
+		rangeObject.StartAddress = (*sequentialAddresses)[0].IPAddress
+		rangeObject.EndAddress = (*sequentialAddresses)[len(*sequentialAddresses)-1].IPAddress
+
+		err = c.CreateRange(rangeObject)
+		if err != nil {
+			return err
+		}
+
+		log.Println("Pausing for race condition checks")
+		time.Sleep(1 * time.Second)
+
+		// Check for used addresses within range
+		usedAddresses, err := c.GetUsedAddressesWithinRange(AddressQuery{
+			CIDR:                 query.CIDR,
+			StartAddress:         rangeObject.StartAddress,
+			EndAddress:           rangeObject.EndAddress,
+			FilterEmptyHostnames: newBool(true),
+		})
+		if err != nil {
+			return err
+		}
+		if len((*usedAddresses)) > 0 {
+			log.Println("Found allocated addresses within newly created range.  Deleting and Recreating.....")
+			retryCount++
+			err := c.DeleteRange(rangeObject.Ref)
+			if err != nil {
+				return err
+			}
+		} else {
+			verified = true
+		}
+	}
+
+	if verified == false {
+		return fmt.Errorf("Unable to create sequential range within %s", query.CIDR)
+	}
+
 	return nil
 }
 

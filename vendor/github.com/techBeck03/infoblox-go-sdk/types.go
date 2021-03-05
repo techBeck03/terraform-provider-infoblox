@@ -170,16 +170,24 @@ type AddressQueryResult struct {
 
 // AddressQuery object
 type AddressQuery struct {
-	NetworkView  string
-	CIDR         string
-	Count        int
-	StartAddress string
-	EndAddress   string
+	NetworkView          string
+	FilterEmptyHostnames *bool
+	Retries              int
+	CIDR                 string
+	Count                int
+	StartAddress         string
+	EndAddress           string
 }
 
 func (aq *AddressQuery) fillDefaults() {
 	if aq.NetworkView == "" {
 		aq.NetworkView = "default"
+	}
+	if aq.Retries == 0 {
+		aq.Retries = 3
+	}
+	if aq.FilterEmptyHostnames == nil {
+		aq.FilterEmptyHostnames = newBool(false)
 	}
 }
 
