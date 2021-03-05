@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/techBeck03/infoblox-go-sdk"
@@ -81,4 +82,29 @@ func createExtensibleAttributesFromJSON(client *infoblox.Client, eaMap map[strin
 	}
 
 	return eas, err
+}
+
+func isEmpty(object interface{}) bool {
+	if object == nil {
+		return true
+	} else if object == "" {
+		return true
+	} else if object == false {
+		return true
+	}
+
+	if reflect.ValueOf(object).Kind() == reflect.Map {
+		if reflect.New(reflect.TypeOf(object)).Elem().Len() == 0 {
+			return true
+		}
+
+	}
+
+	if reflect.ValueOf(object).Kind() == reflect.Struct {
+		empty := reflect.New(reflect.TypeOf(object)).Elem().Interface()
+		if reflect.DeepEqual(object, empty) {
+			return true
+		}
+	}
+	return false
 }

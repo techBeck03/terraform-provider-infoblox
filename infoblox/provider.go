@@ -64,12 +64,14 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"infoblox_host_record": resourceHostRecord(),
 			"infoblox_network":     resourceNetwork(),
+			"infoblox_range":       resourceRange(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"infoblox_host_record": dataSourceHostRecord(),
-			"infoblox_network":     dataSourceNetwork(),
-			"infoblox_grid":        dataSourceGrid(),
-			"infoblox_grid_member": dataSourceGridMember(),
+			"infoblox_host_record":              dataSourceHostRecord(),
+			"infoblox_network":                  dataSourceNetwork(),
+			"infoblox_grid":                     dataSourceGrid(),
+			"infoblox_grid_member":              dataSourceGridMember(),
+			"infoblox_sequential_address_block": dataSourceSequentialAddressBlock(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

@@ -192,5 +192,20 @@ type Range struct {
 	EndAddress           string               `json:"end_addr,omitempty"`
 	NetworkView          string               `json:"network_view,omitempty"`
 	CIDR                 string               `json:"network,omitempty"`
+	Member               *Member              `json:"member,omitempty"`
 	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs,omitempty"`
+}
+
+// RangeQueryResult object
+type RangeQueryResult struct {
+	NextPageID string  `json:"next_page_id,omitempty"`
+	Results    []Range `json:"result,omitempty"`
+}
+
+// IPsWithinRangeQuery object
+type IPsWithinRangeQuery struct {
+	Ref          string
+	CIDR         string
+	StartAddress string
+	EndAddress   string
 }
