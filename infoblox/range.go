@@ -95,11 +95,12 @@ func resourceRange() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
 			"sequential_count": {
-				Type:          schema.TypeInt,
-				Description:   "Sequential count of addresses",
-				Optional:      true,
-				ConflictsWith: []string{"start_address", "end_address"},
-				AtLeastOneOf:  rangeRequiredFields,
+				Type:             schema.TypeInt,
+				Description:      "Sequential count of addresses",
+				Optional:         true,
+				ConflictsWith:    []string{"start_address", "end_address"},
+				AtLeastOneOf:     rangeRequiredFields,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
@@ -306,7 +307,6 @@ func resourceRangeCreate(ctx context.Context, d *schema.ResourceData, m interfac
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
-		// time.Sleep(2 * time.Second)
 	}
 
 	if diags.HasError() {
@@ -335,17 +335,17 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			endAddress := ipmath.IP{
 				Address: net.ParseIP(d.Get("end_address").(string)),
 			}
-			endAddressFinal, err := endAddress.Subtract(old.(int) - new.(int))
+			err := endAddress.Subtract(old.(int) - new.(int))
 			if err != nil {
 				d.Set("sequential_count", old.(int))
 				return diag.FromErr(err)
 			}
-			addressRange.EndAddress = endAddressFinal.String()
+			addressRange.EndAddress = endAddress.ToIPString()
 		} else {
 			endAddress := ipmath.IP{
 				Address: net.ParseIP(d.Get("end_address").(string)),
 			}
-			endAddressFinal, err := endAddress.Add(new.(int) - old.(int))
+			err := endAddress.Add(new.(int) - old.(int))
 			if err != nil {
 				d.Set("sequential_count", old.(int))
 				return diag.FromErr(err)
@@ -353,15 +353,15 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			startAddress := ipmath.IP{
 				Address: net.ParseIP(d.Get("end_address").(string)),
 			}
-			startAddressFinal, err := startAddress.Inc()
+			err = startAddress.Inc()
 			if err != nil {
 				d.Set("sequential_count", old.(int))
 				return diag.FromErr(err)
 			}
 			check, err := client.GetSequentialAddressRange(infoblox.AddressQuery{
 				CIDR:         d.Get("cidr").(string),
-				StartAddress: startAddressFinal.String(),
-				EndAddress:   endAddressFinal.String(),
+				StartAddress: startAddress.ToIPString(),
+				EndAddress:   endAddress.ToIPString(),
 				Count:        new.(int) - old.(int),
 			})
 			if err != nil {
@@ -372,7 +372,7 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 				d.Set("sequential_count", old.(int))
 				return diag.Errorf("Sequential address count increase overlaps with another range or USED IP")
 			}
-			addressRange.EndAddress = endAddressFinal.String()
+			addressRange.EndAddress = endAddress.ToIPString()
 		}
 	}
 
@@ -385,14 +385,15 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			Address: net.ParseIP(new.(string)),
 		}
 		if newIP.LT(oldIP.Address) {
-			endAddress, err := oldIP.Dec()
+			endAddress := oldIP.Clone()
+			err := endAddress.Dec()
 			if err != nil {
 				return diag.FromErr(err)
 			}
 			_, err = client.GetSequentialAddressRange(infoblox.AddressQuery{
 				CIDR:         d.Get("cidr").(string),
 				StartAddress: newIP.Address.String(),
-				EndAddress:   endAddress.String(),
+				EndAddress:   endAddress.ToIPString(),
 				Count:        newIP.Difference(oldIP.Address),
 			})
 			if err != nil {
@@ -412,14 +413,15 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			Address: net.ParseIP(new.(string)),
 		}
 		if newIP.GT(oldIP.Address) {
-			startAddress, err := oldIP.Inc()
+			startAddress := oldIP.Clone()
+			err := startAddress.Inc()
 			if err != nil {
 				return diag.FromErr(err)
 			}
 			_, err = client.GetSequentialAddressRange(infoblox.AddressQuery{
 				CIDR:         d.Get("cidr").(string),
-				StartAddress: startAddress.String(),
-				EndAddress:   oldIP.Address.String(),
+				StartAddress: startAddress.ToIPString(),
+				EndAddress:   newIP.Address.String(),
 				Count:        oldIP.Difference(newIP.Address),
 			})
 			if err != nil {
@@ -460,6 +462,7 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			}
 		}
 	}
+	prettyPrint(addressRange)
 	changedRange, err := client.UpdateRange(d.Id(), addressRange)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
@@ -476,7 +479,6 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
-		// time.Sleep(2 * time.Second)
 	}
 
 	if diags.HasError() {

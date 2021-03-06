@@ -97,12 +97,11 @@ func makeAddressCompareCustomDiff(low string, high string) func(_ context.Contex
 }
 
 func rangeForceNew(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
-	old, _ := diff.GetChange("sequential_count")
-	if _, ok := diff.GetOk("sequential_count"); ok && old == nil {
+	old, new := diff.GetChange("sequential_count")
+	if _, ok := diff.GetOk("sequential_count"); ok && old == 0 {
 		diff.ForceNew("sequential_count")
-	}
-	if _, ok := diff.GetOk("start_address"); ok && old != nil {
-		diff.ForceNew("sequential_count")
+	} else if _, ok := diff.GetOk("start_address"); ok && old != 0 && new == 0 {
+		diff.ForceNew("start_address")
 	}
 
 	return nil
