@@ -15,6 +15,7 @@ var (
 	hostRecordRequiredIPFields = []string{
 		"network",
 		"ip_v4_address",
+		"range_function_string",
 	}
 )
 
@@ -54,9 +55,17 @@ func resourceHostRecord() *schema.Resource {
 				Description:      "Network for host record in CIDR notation",
 				Optional:         true,
 				ForceNew:         true,
-				ConflictsWith:    []string{"ip_v4_address"},
+				ConflictsWith:    []string{"ip_v4_address", "range_function_string"},
 				AtLeastOneOf:     hostRecordRequiredIPFields,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
+			},
+			"range_function_string": {
+				Type:          schema.TypeString,
+				Description:   "Range start and end string for next_available_ip function calls",
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ip_v4_address", "network"},
+				AtLeastOneOf:  hostRecordRequiredIPFields,
 			},
 			"enable_dns": {
 				Type:        schema.TypeBool,
@@ -90,7 +99,7 @@ func resourceHostRecord() *schema.Resource {
 				Description:   "IPv4 addresses associated with host record",
 				Optional:      true,
 				Computed:      true,
-				ConflictsWith: []string{"network"},
+				ConflictsWith: []string{"network", "range_function_string"},
 				AtLeastOneOf:  hostRecordRequiredIPFields,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -197,9 +206,16 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 	ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
 	record.IPv4Addrs = []infoblox.IPv4Addr{}
 	if len(ipAddressList) == 0 {
-		record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
-			IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
-		})
+		if _, ok := d.GetOk("network"); ok && network != "" {
+			record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
+				IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
+			})
+		} else {
+			rangeFunctionString := d.Get("range_function_string")
+			record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
+				IPAddress: fmt.Sprintf("func:nextavailableip:%s", rangeFunctionString),
+			})
+		}
 	} else {
 		for _, address := range ipAddressList {
 			var ipv4Addr infoblox.IPv4Addr
@@ -295,10 +311,18 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 		record.EnableDNS = newBool(d.Get("enable_dns").(bool))
 	}
 	if d.HasChange("network") {
-		network := d.Get("network").(string)
-		record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
-			IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
-		})
+		if network, ok := d.GetOk("network"); ok && network.(string) != "" {
+			record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
+				IPAddress: fmt.Sprintf("func:nextavailableip:%s", network.(string)),
+			})
+		}
+	}
+	if d.HasChange("range_function_string") {
+		if rangeFunctionString, ok := d.GetOk("range_function_string"); ok && rangeFunctionString.(string) != "" {
+			record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
+				IPAddress: fmt.Sprintf("func:nextavailableip:%s", rangeFunctionString.(string)),
+			})
+		}
 	}
 	if d.HasChange("network_view") {
 		record.NetworkView = d.Get("network_view").(string)
@@ -310,21 +334,22 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 		record.NetworkView = d.Get("zone").(string)
 	}
 	if d.HasChange("ip_v4_address") {
-		ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
-		record.IPv4Addrs = []infoblox.IPv4Addr{}
-		for _, address := range ipAddressList {
-			var ipv4Addr infoblox.IPv4Addr
+		if ipAddress, ok := d.GetOk("ip_v4_address"); ok && len(ipAddress.(*schema.Set).List()) > 0 {
+			record.IPv4Addrs = []infoblox.IPv4Addr{}
+			for _, address := range ipAddress.(*schema.Set).List() {
+				var ipv4Addr infoblox.IPv4Addr
 
-			ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
-			if address.(map[string]interface{})["hostname"] != "" {
-				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
-			}
+				ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
+				if address.(map[string]interface{})["hostname"] != "" {
+					ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
+				}
 
-			ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
-			if address.(map[string]interface{})["mac_address"].(string) != "" {
-				ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
+				ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
+				if address.(map[string]interface{})["mac_address"].(string) != "" {
+					ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
+				}
+				record.IPv4Addrs = append(record.IPv4Addrs, ipv4Addr)
 			}
-			record.IPv4Addrs = append(record.IPv4Addrs, ipv4Addr)
 		}
 	}
 	if d.HasChange("extensible_attributes") {

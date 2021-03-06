@@ -2,6 +2,7 @@ package infoblox
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 
@@ -102,6 +103,11 @@ func resourceRange() *schema.Resource {
 				AtLeastOneOf:     rangeRequiredFields,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
 			},
+			"range_function_string": {
+				Type:        schema.TypeString,
+				Description: "String representation of start and end addresses to be used with function calls",
+				Computed:    true,
+			},
 			"grid_ref": {
 				Type:         schema.TypeString,
 				Description:  "Ref for grid needed for restarting services",
@@ -179,6 +185,7 @@ func convertRangeToResourceData(client *infoblox.Client, d *schema.ResourceData,
 	d.Set("comment", addressRange.Comment)
 	d.Set("start_address", addressRange.StartAddress)
 	d.Set("end_address", addressRange.EndAddress)
+	d.Set("range_function_string", fmt.Sprintf("%s-%s", addressRange.StartAddress, addressRange.EndAddress))
 	d.Set("network_view", addressRange.NetworkView)
 	d.Set("disable_dhcp", addressRange.DisableDHCP)
 
