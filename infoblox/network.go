@@ -402,6 +402,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
+		// time.Sleep(2 * time.Second)
 	}
 
 	if diags.HasError() {
@@ -569,6 +570,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
+		// time.Sleep(2 * time.Second)
 	}
 
 	if diags.HasError() {

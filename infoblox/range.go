@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -307,9 +306,8 @@ func resourceRangeCreate(ctx context.Context, d *schema.ResourceData, m interfac
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
+		// time.Sleep(2 * time.Second)
 	}
-
-	time.Sleep(2 * time.Second)
 
 	if diags.HasError() {
 		return diags
@@ -478,13 +476,12 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
+		// time.Sleep(2 * time.Second)
 	}
 
 	if diags.HasError() {
 		return diags
 	}
-
-	time.Sleep(2 * time.Second)
 
 	d.SetId(changedRange.Ref)
 	return resourceRangeRead(ctx, d, m)

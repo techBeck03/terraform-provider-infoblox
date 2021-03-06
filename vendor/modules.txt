@@ -88,7 +88,7 @@ github.com/oklog/run
 # github.com/techBeck03/go-ipmath v0.0.5
 ## explicit
 github.com/techBeck03/go-ipmath
-# github.com/techBeck03/infoblox-go-sdk v0.0.30-alpha
+# github.com/techBeck03/infoblox-go-sdk v0.0.31-alpha
 ## explicit
 github.com/techBeck03/infoblox-go-sdk
 # github.com/vmihailenco/msgpack v4.0.4+incompatible
