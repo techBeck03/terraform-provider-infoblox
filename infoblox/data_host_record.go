@@ -65,7 +65,7 @@ func dataSourceHostRecord() *schema.Resource {
 			"query_params": {
 				Type:        schema.TypeMap,
 				Description: "Additional query parameters",
-				Computed:    true,
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

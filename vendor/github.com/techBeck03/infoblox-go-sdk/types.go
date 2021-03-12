@@ -145,6 +145,7 @@ type FixedAddress struct {
 	Mac                  string               `json:"mac,omitempty"`
 	Hostname             string               `json:"name,omitempty"`
 	MatchClient          string               `json:"match_client,omitempty"`
+	Options              []Option             `json:"options,omitempty"`
 	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs,omitempty"`
 }
 
@@ -201,6 +202,7 @@ type Range struct {
 	NetworkView          string               `json:"network_view,omitempty"`
 	CIDR                 string               `json:"network,omitempty"`
 	Member               *Member              `json:"member,omitempty"`
+	Options              []Option             `json:"options,omitempty"`
 	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs,omitempty"`
 }
 

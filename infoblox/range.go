@@ -19,10 +19,6 @@ var (
 		"start_address",
 		"sequential_count",
 	}
-	dhcpRequiredFields = []string{
-		"disable_dhcp",
-		"member",
-	}
 )
 
 func resourceRange() *schema.Resource {
@@ -36,16 +32,15 @@ func resourceRange() *schema.Resource {
 		// },
 		CustomizeDiff: customdiff.Sequence(
 			makeEACustomDiff("extensible_attributes"),
-			makeAddressCompareCustomDiff("start_address", "end_address"),
+			// makeAddressCompareCustomDiff("start_address", "end_address"),
 			rangeForceNew,
 			makeCidrContainsIPCheck("cidr", []string{"start_address", "end_address"}),
-			makeLowerThanIPCheck("start_address", "end_address"),
+			makeGTIPCheck("start_address", "end_address"),
 		),
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
 				Description: "Reference id of range object",
-				Optional:    true,
 				Computed:    true,
 			},
 			"comment": {
@@ -62,12 +57,10 @@ func resourceRange() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
 			"disable_dhcp": {
-				Type:          schema.TypeBool,
-				Description:   "Disable for DHCP",
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"member"},
-				AtLeastOneOf:  dhcpRequiredFields,
+				Type:        schema.TypeBool,
+				Description: "Disable for DHCP",
+				Optional:    true,
+				Computed:    true,
 			},
 			"network_view": {
 				Type:        schema.TypeString,
@@ -120,12 +113,10 @@ func resourceRange() *schema.Resource {
 				Optional:    true,
 			},
 			"member": {
-				Type:          schema.TypeList,
-				Description:   "Grid member associated with range",
-				Optional:      true,
-				ConflictsWith: []string{"disable_dhcp"},
-				AtLeastOneOf:  dhcpRequiredFields,
-				MaxItems:      1,
+				Type:        schema.TypeList,
+				Description: "Grid member associated with range",
+				Required:    true,
+				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"struct": {
@@ -158,6 +149,43 @@ func resourceRange() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "Hostname of member",
 							Required:    true,
+						},
+					},
+				},
+			},
+			"option": {
+				Type:        schema.TypeSet,
+				Description: "DHCP options associated with network",
+				Optional:    true,
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:        schema.TypeString,
+							Description: "Name of DHCP option",
+							Required:    true,
+						},
+						"code": {
+							Type:        schema.TypeInt,
+							Description: "Code of the DHCP option",
+							Computed:    true,
+						},
+						"use_option": {
+							Type:        schema.TypeBool,
+							Description: "Use this dhcp option",
+							Optional:    true,
+							Default:     true,
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Description: "Value of option",
+							Required:    true,
+						},
+						"vendor_class": {
+							Type:        schema.TypeString,
+							Description: "Value of option",
+							Optional:    true,
+							Default:     "DHCP",
 						},
 					},
 				},
@@ -201,6 +229,19 @@ func convertRangeToResourceData(client *infoblox.Client, d *schema.ResourceData,
 		d.Set("member", memberList)
 	}
 
+	var optionList []map[string]interface{}
+	for _, option := range addressRange.Options {
+		optionList = append(optionList, map[string]interface{}{
+			"name":         option.Name,
+			"code":         option.Code,
+			"use_option":   option.UseOption,
+			"value":        option.Value,
+			"vendor_class": option.VendorClass,
+		})
+	}
+
+	d.Set("option", optionList)
+
 	eas, err := client.ConvertEAsToJSONString(*addressRange.ExtensibleAttributes)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
@@ -233,6 +274,19 @@ func convertResourceDataToRange(client *infoblox.Client, d *schema.ResourceData)
 			})
 		}
 		addressRange.Member = &members[0]
+	}
+
+	optionList := d.Get("option").(*schema.Set).List()
+	addressRange.Options = []infoblox.Option{}
+	if len(optionList) > 0 {
+		for _, option := range optionList {
+			addressRange.Options = append(addressRange.Options, infoblox.Option{
+				Name:        option.(map[string]interface{})["name"].(string),
+				UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
+				Value:       option.(map[string]interface{})["value"].(string),
+				VendorClass: option.(map[string]interface{})["vendor_class"].(string),
+			})
+		}
 	}
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
@@ -453,6 +507,21 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		addressRange.Member = &members[0]
 	}
 
+	if d.HasChange("option") {
+		optionList := d.Get("option").(*schema.Set).List()
+		addressRange.Options = []infoblox.Option{}
+		if len(optionList) > 0 {
+			for _, option := range optionList {
+				addressRange.Options = append(addressRange.Options, infoblox.Option{
+					Name:        option.(map[string]interface{})["name"].(string),
+					UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
+					Value:       option.(map[string]interface{})["value"].(string),
+					VendorClass: option.(map[string]interface{})["vendor_class"].(string),
+				})
+			}
+		}
+	}
+
 	if d.HasChange("extensible_attributes") {
 		eaMap := d.Get("extensible_attributes").(map[string]interface{})
 		if len(eaMap) > 0 {
@@ -469,7 +538,6 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			}
 		}
 	}
-	prettyPrint(addressRange)
 	changedRange, err := client.UpdateRange(d.Id(), addressRange)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)

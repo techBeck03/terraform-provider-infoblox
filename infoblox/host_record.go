@@ -35,7 +35,6 @@ func resourceHostRecord() *schema.Resource {
 			"ref": {
 				Type:        schema.TypeString,
 				Description: "Reference id of host record object",
-				Optional:    true,
 				Computed:    true,
 			},
 			"hostname": {
@@ -328,10 +327,10 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 		record.NetworkView = d.Get("network_view").(string)
 	}
 	if d.HasChange("view") {
-		record.NetworkView = d.Get("view").(string)
+		record.View = d.Get("view").(string)
 	}
 	if d.HasChange("zone") {
-		record.NetworkView = d.Get("zone").(string)
+		record.Zone = d.Get("zone").(string)
 	}
 	if d.HasChange("ip_v4_address") {
 		if ipAddress, ok := d.GetOk("ip_v4_address"); ok && len(ipAddress.(*schema.Set).List()) > 0 {

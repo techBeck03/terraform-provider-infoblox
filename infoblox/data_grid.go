@@ -47,7 +47,6 @@ func dataSourceGrid() *schema.Resource {
 				Type:        schema.TypeMap,
 				Description: "Additional query parameters",
 				Optional:    true,
-				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

@@ -5,35 +5,36 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
 var (
-	dataNetworkRequiredSearchFields = []string{
-		"cidr",
+	dataRangeRequiredFields = []string{
 		"ref",
+		"cidr",
 	}
 )
 
-func dataSourceNetwork() *schema.Resource {
+func dataSourceRange() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceNetworkRead,
+		ReadContext: dataSourceRangeRead,
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of network object",
+				Description:   "Reference id of range object",
 				Optional:      true,
 				Computed:      true,
+				AtLeastOneOf:  dataRangeRequiredFields,
 				ConflictsWith: []string{"cidr"},
-				AtLeastOneOf:  dataNetworkRequiredSearchFields,
 			},
 			"cidr": {
-				Type:          schema.TypeString,
-				Description:   "CIDR of network",
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"ref"},
-				AtLeastOneOf:  dataNetworkRequiredSearchFields,
+				Type:             schema.TypeString,
+				Description:      "Network for range in CIDR notation",
+				Optional:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
+				AtLeastOneOf:     dataRangeRequiredFields,
+				ConflictsWith:    []string{"ref"},
 			},
 			"comment": {
 				Type:        schema.TypeString,
@@ -48,20 +49,32 @@ func dataSourceNetwork() *schema.Resource {
 			"network_view": {
 				Type:        schema.TypeString,
 				Description: "Network view",
-				Optional:    true,
 				Computed:    true,
 			},
-			"query_params": {
-				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
-				Optional:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			"start_address": {
+				Type:             schema.TypeString,
+				Description:      "Starting IP address",
+				Optional:         true,
+				Computed:         true,
+				RequiredWith:     []string{"cidr"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+			},
+			"end_address": {
+				Type:             schema.TypeString,
+				Description:      "Starting IP address",
+				Optional:         true,
+				Computed:         true,
+				RequiredWith:     []string{"cidr"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+			},
+			"range_function_string": {
+				Type:        schema.TypeString,
+				Description: "String representation of start and end addresses to be used with function calls",
+				Computed:    true,
 			},
 			"member": {
-				Type:        schema.TypeSet,
-				Description: "Grid members associated with network",
+				Type:        schema.TypeList,
+				Description: "Grid member associated with range",
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -101,7 +114,7 @@ func dataSourceNetwork() *schema.Resource {
 						},
 						"code": {
 							Type:        schema.TypeInt,
-							Description: "Option numberic id",
+							Description: "Code of the DHCP option",
 							Computed:    true,
 						},
 						"use_option": {
@@ -124,8 +137,16 @@ func dataSourceNetwork() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of network",
+				Description: "Extensible attributes of range",
 				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"query_params": {
+				Type:        schema.TypeMap,
+				Description: "Additional query parameters",
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -134,57 +155,49 @@ func dataSourceNetwork() *schema.Resource {
 	}
 }
 
-func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceRangeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
-	var record infoblox.Network
+	var addressRange infoblox.Range
 
-	ref := d.Get("ref").(string)
-	cidr := d.Get("cidr").(string)
-	networkView := d.Get("network_view").(string)
-
-	queryParams := d.Get("query_params").(map[string]interface{})
-	resolvedQueryParams := make(map[string]string)
-
-	for k, v := range queryParams {
-		resolvedQueryParams[k] = v.(string)
-	}
-
-	if ref != "" {
-		r, err := client.GetNetworkByRef(ref, nil)
+	if ref, ok := d.GetOk("ref"); ok {
+		r, err := client.GetRangeByRef(ref.(string), nil)
 		if err != nil {
-			diags = append(diags, diag.FromErr(err)...)
-			return diags
+			return diag.FromErr(err)
 		}
-		record = r
+		addressRange = r
 	} else {
-		resolvedQueryParams["network"] = cidr
-		if networkView != "" {
-			resolvedQueryParams["network_view"] = networkView
+		queryParams := d.Get("query_params").(map[string]interface{})
+		resolvedQueryParams := make(map[string]string)
+
+		for k, v := range queryParams {
+			resolvedQueryParams[k] = v.(string)
 		}
-		r, err := client.GetNetworkByQuery(resolvedQueryParams)
+		resolvedQueryParams["network"] = d.Get("cidr").(string)
+		resolvedQueryParams["start_addr"] = d.Get("start_address").(string)
+		resolvedQueryParams["end_addr"] = d.Get("end_address").(string)
+		r, err := client.GetRangeByQuery(resolvedQueryParams)
 		if err != nil {
-			diags = append(diags, diag.FromErr(err)...)
-			return diags
+			return diag.FromErr(err)
 		}
 		if len(r) > 1 {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Multiple data results found",
-				Detail:   "The provided hostname matched multiple record hosts",
+				Detail:   "The provided cidr, start_addr, end_addr matched multiple ranges",
 			})
 			return diags
 		}
-		record = r[0]
+		addressRange = r[0]
 	}
 
-	check := convertNetworkToResourceData(client, d, &record)
+	check := convertRangeToResourceData(client, d, &addressRange)
 	if check.HasError() {
 		return check
 	}
-	d.SetId(record.Ref)
+	d.SetId(addressRange.Ref)
 
 	return diags
 }

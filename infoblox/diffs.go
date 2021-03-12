@@ -1,7 +1,6 @@
 package infoblox
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -81,21 +80,6 @@ func optionCustomDiff(_ context.Context, diff *schema.ResourceDiff, v interface{
 	return nil
 }
 
-func makeAddressCompareCustomDiff(low string, high string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
-	return func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
-		if _, ok := diff.GetOk(low); ok {
-			lowAddress := net.ParseIP(diff.Get(low).(string))
-			highAddress := net.ParseIP(diff.Get(high).(string))
-
-			if bytes.Compare(lowAddress, highAddress) >= 0 {
-				return fmt.Errorf("IP Address `%s` must be lower than `%s`", low, high)
-			}
-		}
-
-		return nil
-	}
-}
-
 func rangeForceNew(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	old, new := diff.GetChange("sequential_count")
 	if _, ok := diff.GetOk("sequential_count"); ok && old == 0 {
@@ -125,13 +109,13 @@ func makeCidrContainsIPCheck(cidrArg string, ipArgs []string) func(_ context.Con
 	}
 }
 
-func makeLowerThanIPCheck(lowerIP string, higherIP string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+func makeGTIPCheck(lowerIP string, higherIP string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	return func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 		if lowerVal, ok := diff.GetOk(lowerIP); ok {
 			lowerIPObj := ipmath.IP{
 				Address: net.ParseIP(lowerVal.(string)),
 			}
-			if lowerIPObj.GTE(net.ParseIP(diff.Get(higherIP).(string))) {
+			if lowerIPObj.GT(net.ParseIP(diff.Get(higherIP).(string))) {
 				return fmt.Errorf("`%s` must have an IP address lower than `%s`", lowerIP, higherIP)
 			}
 		}
