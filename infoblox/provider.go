@@ -66,6 +66,7 @@ func Provider() *schema.Provider {
 			"infoblox_network":       resourceNetwork(),
 			"infoblox_range":         resourceRange(),
 			"infoblox_fixed_address": resourceFixedAddress(),
+			"infoblox_a_record":      resourceARecord(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"infoblox_host_record":              dataSourceHostRecord(),
