@@ -232,3 +232,16 @@ type ARecord struct {
 	View                 string               `json:"view,omitempty"`
 	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs,omitempty"`
 }
+
+// CName object
+type CNameRecord struct {
+	Ref                  string               `json:"_ref,omitempty"`
+	Alias                string               `json:"name,omitempty"`
+	Canonical            string               `json:"canonical,omitempty"`
+	DNSName              string               `json:"dns_name,omitempty"`
+	Zone                 string               `json:"zone,omitempty"`
+	Comment              string               `json:"comment,omitempty"`
+	Disable              *bool                `json:"disable,omitempty"`
+	View                 string               `json:"view,omitempty"`
+	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs,omitempty"`
+}

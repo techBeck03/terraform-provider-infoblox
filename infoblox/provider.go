@@ -67,6 +67,7 @@ func Provider() *schema.Provider {
 			"infoblox_range":         resourceRange(),
 			"infoblox_fixed_address": resourceFixedAddress(),
 			"infoblox_a_record":      resourceARecord(),
+			"infoblox_cname_record":  resourceCNameRecord(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"infoblox_host_record":              dataSourceHostRecord(),
@@ -75,6 +76,8 @@ func Provider() *schema.Provider {
 			"infoblox_grid_member":              dataSourceGridMember(),
 			"infoblox_sequential_address_block": dataSourceSequentialAddressBlock(),
 			"infoblox_range":                    dataSourceRange(),
+			"infoblox_a_record":                 dataSourceARecord(),
+			"infoblox_cname_record":             dataSourceCNameRecord(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

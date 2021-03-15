@@ -6,24 +6,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
 var (
-	aRecordRequiredIPFields = []string{
+	cNameRecordRequiredIPFields = []string{
 		"network",
 		"ip_v4_address",
 		"range_function_string",
 	}
 )
 
-func resourceARecord() *schema.Resource {
+func resourceCNameRecord() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceARecordCreate,
-		ReadContext:   resourceARecordRead,
-		UpdateContext: resourceARecordUpdate,
-		DeleteContext: resourceARecordDelete,
+		CreateContext: resourceCNameRecordCreate,
+		ReadContext:   resourceCNameRecordRead,
+		UpdateContext: resourceCNameRecordUpdate,
+		DeleteContext: resourceCNameRecordDelete,
 		// Importer: &schema.ResourceImporter{
 		// 	State: schema.ImportStatePassthrough,
 		// },
@@ -33,24 +32,23 @@ func resourceARecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
-				Description: "Reference id of A record object",
+				Description: "Reference id of cname record object",
 				Computed:    true,
 			},
-			"hostname": {
+			"alias": {
 				Type:        schema.TypeString,
-				Description: "Hostname of A record",
+				Description: "Alias",
+				Required:    true,
+			},
+			"canonical": {
+				Type:        schema.TypeString,
+				Description: "Canonical name",
 				Required:    true,
 			},
 			"dns_name": {
 				Type:        schema.TypeString,
-				Description: "DNS name of A record",
+				Description: "DNS name of cname record",
 				Computed:    true,
-			},
-			"ip_address": {
-				Type:             schema.TypeString,
-				Description:      "IP address",
-				Required:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
 			"comment": {
 				Type:        schema.TypeString,
@@ -79,7 +77,7 @@ func resourceARecord() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of A record",
+				Description:      "Extensible attributes of cname record",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validateEa,
@@ -92,13 +90,13 @@ func resourceARecord() *schema.Resource {
 	}
 }
 
-func convertARecordToResourceData(client *infoblox.Client, d *schema.ResourceData, record *infoblox.ARecord) diag.Diagnostics {
+func convertCNameRecordToResourceData(client *infoblox.Client, d *schema.ResourceData, record *infoblox.CNameRecord) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	d.Set("ref", record.Ref)
-	d.Set("hostname", record.Hostname)
+	d.Set("alias", record.Alias)
+	d.Set("canonical", record.Canonical)
 	d.Set("dns_name", record.DNSName)
-	d.Set("ip_address", record.IPAddress)
 	d.Set("comment", record.Comment)
 	d.Set("disable", record.Disable)
 	d.Set("view", record.View)
@@ -114,12 +112,12 @@ func convertARecordToResourceData(client *infoblox.Client, d *schema.ResourceDat
 	return diags
 }
 
-func convertResourceDataToARecord(client *infoblox.Client, d *schema.ResourceData) (*infoblox.ARecord, error) {
-	var record infoblox.ARecord
+func convertResourceDataToCNameRecord(client *infoblox.Client, d *schema.ResourceData) (*infoblox.CNameRecord, error) {
+	var record infoblox.CNameRecord
 
-	record.Hostname = d.Get("hostname").(string)
+	record.Alias = d.Get("alias").(string)
+	record.Canonical = d.Get("canonical").(string)
 	record.DNSName = d.Get("dns_name").(string)
-	record.IPAddress = d.Get("ip_address").(string)
 	record.Comment = d.Get("comment").(string)
 	record.Disable = newBool(d.Get("disable").(bool))
 	record.View = d.Get("view").(string)
@@ -143,19 +141,19 @@ func convertResourceDataToARecord(client *infoblox.Client, d *schema.ResourceDat
 	return &record, nil
 }
 
-func resourceARecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCNameRecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 	ref := d.Id()
 
-	record, err := client.GetARecordByRef(ref, nil)
+	record, err := client.GetCNameRecordByRef(ref, nil)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
-	check := convertARecordToResourceData(client, d, &record)
+	check := convertCNameRecordToResourceData(client, d, &record)
 	if check.HasError() {
 		return check
 	}
@@ -165,18 +163,18 @@ func resourceARecordRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
-func resourceARecordCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCNameRecordCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 
-	record, err := convertResourceDataToARecord(client, d)
+	record, err := convertResourceDataToCNameRecord(client, d)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
-	err = client.CreateARecord(record)
+	err = client.CreateCNameRecord(record)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
@@ -187,22 +185,22 @@ func resourceARecordCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(record.Ref)
-	return resourceARecordRead(ctx, d, m)
+	return resourceCNameRecordRead(ctx, d, m)
 }
 
-func resourceARecordUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
+func resourceCNameRecordUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
 	client := m.(*infoblox.Client)
 
-	var record infoblox.ARecord
+	var record infoblox.CNameRecord
 
-	if d.HasChange("hostname") {
-		record.Hostname = d.Get("hostname").(string)
+	if d.HasChange("alias") {
+		record.Alias = d.Get("alias").(string)
+	}
+	if d.HasChange("canonical") {
+		record.Canonical = d.Get("canonical").(string)
 	}
 	if d.HasChange("dns_name") {
 		record.DNSName = d.Get("dns_name").(string)
-	}
-	if d.HasChange("ip_address") {
-		record.IPAddress = d.Get("ip_address").(string)
 	}
 	if d.HasChange("comment") {
 		record.Comment = d.Get("comment").(string)
@@ -232,23 +230,23 @@ func resourceARecordUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 	}
-	changedRecord, err := client.UpdateARecord(d.Id(), record)
+	changedRecord, err := client.UpdateCNameRecord(d.Id(), record)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
 	d.SetId(changedRecord.Ref)
-	return resourceARecordRead(ctx, d, m)
+	return resourceCNameRecordRead(ctx, d, m)
 }
 
-func resourceARecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCNameRecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 	ref := d.Id()
 
-	err := client.DeleteARecord(ref)
+	err := client.DeleteCNameRecord(ref)
 	if err != nil {
 		return diag.FromErr(err)
 	}

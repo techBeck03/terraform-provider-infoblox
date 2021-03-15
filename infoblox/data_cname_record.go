@@ -5,55 +5,52 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
 var (
-	dataARecordRequiredSearchFields = []string{
-		"hostname",
+	dataCNameRecordRequiredSearchFields = []string{
+		"alias",
 		"ref",
-		"ip_address",
+		"canonical",
 		"dns_name",
 	}
 )
 
-func dataSourceARecord() *schema.Resource {
+func dataSourceCNameRecord() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceARecordRead,
+		ReadContext: dataSourceCNameRecordRead,
 		Schema: map[string]*schema.Schema{
 			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of A record object",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"hostname", "ip_address", "dns_name"},
+				Type:         schema.TypeString,
+				Description:  "Reference id of A record object",
+				Optional:     true,
+				Computed:     true,
+				AtLeastOneOf: dataCNameRecordRequiredSearchFields,
 			},
-			"hostname": {
+			"alias": {
 				Type:          schema.TypeString,
-				Description:   "Hostname of A record",
+				Description:   "Alias of A record",
 				Optional:      true,
 				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "ip_address", "dns_name"},
+				AtLeastOneOf:  dataCNameRecordRequiredSearchFields,
+				ConflictsWith: []string{"ref"},
+			},
+			"canonical": {
+				Type:          schema.TypeString,
+				Description:   "Canonical name",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  dataCNameRecordRequiredSearchFields,
+				ConflictsWith: []string{"ref"},
 			},
 			"dns_name": {
 				Type:          schema.TypeString,
 				Description:   "DNS name of A record",
 				Optional:      true,
 				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"hostname", "ip_address", "ref"},
-			},
-			"ip_address": {
-				Type:             schema.TypeString,
-				Description:      "IP address",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
-				AtLeastOneOf:     dataARecordRequiredSearchFields,
-				ConflictsWith:    []string{"hostname", "ref", "dns_name"},
+				AtLeastOneOf:  dataCNameRecordRequiredSearchFields,
+				ConflictsWith: []string{"ref"},
 			},
 			"comment": {
 				Type:        schema.TypeString,
@@ -97,15 +94,15 @@ func dataSourceARecord() *schema.Resource {
 	}
 }
 
-func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceCNameRecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
-	var record infoblox.ARecord
+	var record infoblox.CNameRecord
 
 	if ref, ok := d.GetOk("ref"); ok {
-		r, err := client.GetARecordByRef(ref.(string), nil)
+		r, err := client.GetCNameRecordByRef(ref.(string), nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -126,23 +123,23 @@ func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interf
 		if zone, ok := d.GetOk("zone"); ok {
 			resolvedQueryParams["zone"] = zone.(string)
 		}
-		if hostname, ok := d.GetOk("hostname"); ok {
-			resolvedQueryParams["name"] = hostname.(string)
-			r, err := client.GetARecordByQuery(resolvedQueryParams)
+		if alias, ok := d.GetOk("alias"); ok {
+			resolvedQueryParams["name"] = alias.(string)
+			r, err := client.GetCNameRecordByQuery(resolvedQueryParams)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			record = r[0]
+		} else if canonical, ok := d.GetOk("canonical"); ok {
+			resolvedQueryParams["canonical"] = canonical.(string)
+			r, err := client.GetCNameRecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 			record = r[0]
 		} else if dns_name, ok := d.GetOk("dns_name"); ok {
 			resolvedQueryParams["dns_name"] = dns_name.(string)
-			r, err := client.GetARecordByQuery(resolvedQueryParams)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			record = r[0]
-		} else if ip_address, ok := d.GetOk("ip_address"); ok {
-			resolvedQueryParams["ipv4addr"] = ip_address.(string)
-			r, err := client.GetARecordByQuery(resolvedQueryParams)
+			r, err := client.GetCNameRecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -150,7 +147,7 @@ func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interf
 		}
 	}
 
-	check := convertARecordToResourceData(client, d, &record)
+	check := convertCNameRecordToResourceData(client, d, &record)
 	if check.HasError() {
 		return check
 	}
