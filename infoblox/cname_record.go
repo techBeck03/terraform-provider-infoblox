@@ -73,7 +73,6 @@ func resourceCNameRecord() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: "DNS zone",
 				Computed:    true,
-				ForceNew:    true,
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,

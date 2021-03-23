@@ -108,3 +108,22 @@ func isEmpty(object interface{}) bool {
 	}
 	return false
 }
+
+func remove(s []string, r string, createNew bool) []string {
+	for i, v := range s {
+		if v == r {
+			if createNew {
+				var m []string
+				for j := 0; j < i; j++ {
+					m = append(m, s[j])
+				}
+				for j := i + 1; j < len(s); j++ {
+					m = append(m, s[j])
+				}
+				return m
+			}
+			return append(s[:i], s[i+1:]...)
+		}
+	}
+	return s
+}

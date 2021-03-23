@@ -5,55 +5,62 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
 var (
-	dataARecordRequiredSearchFields = []string{
-		"hostname",
+	dataAliasRecordRequiredSearchFields = []string{
+		"name",
 		"ref",
-		"ip_address",
 		"dns_name",
 	}
 )
 
-func dataSourceARecord() *schema.Resource {
+func dataSourceAliasRecord() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceARecordRead,
+		ReadContext: dataSourceAliasRecordRead,
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of A record object",
+				Description:   "Reference id of alias record object",
 				Optional:      true,
 				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"hostname", "ip_address", "dns_name"},
+				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
+				ConflictsWith: []string{"name", "dns_name"},
 			},
-			"hostname": {
+			"name": {
 				Type:          schema.TypeString,
-				Description:   "Hostname of A record",
+				Description:   "The name for an Alias record in FQDN format",
 				Optional:      true,
 				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "ip_address", "dns_name"},
+				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
+				ConflictsWith: []string{"ref", "dns_name"},
+			},
+			"target_name": {
+				Type:        schema.TypeString,
+				Description: "Target name in FQDN format",
+				Computed:    true,
+			},
+			"target_type": {
+				Type:        schema.TypeString,
+				Description: "Target type",
+				Computed:    true,
 			},
 			"dns_name": {
 				Type:          schema.TypeString,
-				Description:   "DNS name of A record",
+				Description:   "The name for an Alias record in punycode format",
 				Optional:      true,
 				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"hostname", "ip_address", "ref"},
+				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
+				ConflictsWith: []string{"name", "ref"},
 			},
-			"ip_address": {
-				Type:             schema.TypeString,
-				Description:      "IP address",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
-				AtLeastOneOf:     dataARecordRequiredSearchFields,
-				ConflictsWith:    []string{"hostname", "ref", "dns_name"},
+			"dns_target_name": {
+				Type:          schema.TypeString,
+				Description:   "Target name in punycode format",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
+				ConflictsWith: []string{"name", "ref"},
 			},
 			"comment": {
 				Type:        schema.TypeString,
@@ -87,7 +94,7 @@ func dataSourceARecord() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of A record",
+				Description: "Extensible attributes of alias record",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -97,15 +104,15 @@ func dataSourceARecord() *schema.Resource {
 	}
 }
 
-func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceAliasRecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
-	var record infoblox.ARecord
+	var record infoblox.AliasRecord
 
 	if ref, ok := d.GetOk("ref"); ok {
-		r, err := client.GetARecordByRef(ref.(string), nil)
+		r, err := client.GetAliasRecordByRef(ref.(string), nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -117,29 +124,19 @@ func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interf
 		for k, v := range queryParams {
 			resolvedQueryParams[k] = v.(string)
 		}
-		if zone, ok := d.GetOk("zone"); ok {
-			resolvedQueryParams["zone"] = zone.(string)
-		}
 		if view, ok := d.GetOk("view"); ok {
 			resolvedQueryParams["view"] = view.(string)
 		}
-		if hostname, ok := d.GetOk("hostname"); ok {
-			resolvedQueryParams["name"] = hostname.(string)
-			r, err := client.GetARecordByQuery(resolvedQueryParams)
+		if name, ok := d.GetOk("name"); ok {
+			resolvedQueryParams["name"] = name.(string)
+			r, err := client.GetAliasRecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 			record = r[0]
 		} else if dns_name, ok := d.GetOk("dns_name"); ok {
 			resolvedQueryParams["dns_name"] = dns_name.(string)
-			r, err := client.GetARecordByQuery(resolvedQueryParams)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			record = r[0]
-		} else if ip_address, ok := d.GetOk("ip_address"); ok {
-			resolvedQueryParams["ipv4addr"] = ip_address.(string)
-			r, err := client.GetARecordByQuery(resolvedQueryParams)
+			r, err := client.GetAliasRecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -147,7 +144,7 @@ func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interf
 		}
 	}
 
-	check := convertARecordToResourceData(client, d, &record)
+	check := convertAliasRecordToResourceData(client, d, &record)
 	if check.HasError() {
 		return check
 	}

@@ -10,12 +10,12 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
-func resourceARecord() *schema.Resource {
+func resourcePtrRecord() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceARecordCreate,
-		ReadContext:   resourceARecordRead,
-		UpdateContext: resourceARecordUpdate,
-		DeleteContext: resourceARecordDelete,
+		CreateContext: resourcePtrRecordCreate,
+		ReadContext:   resourcePtrRecordRead,
+		UpdateContext: resourcePtrRecordUpdate,
+		DeleteContext: resourcePtrRecordDelete,
 		// Importer: &schema.ResourceImporter{
 		// 	State: schema.ImportStatePassthrough,
 		// },
@@ -25,24 +25,50 @@ func resourceARecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
-				Description: "Reference id of A record object",
+				Description: "Reference id of ptr record object",
 				Computed:    true,
 			},
-			"hostname": {
-				Type:        schema.TypeString,
-				Description: "Hostname of A record",
-				Required:    true,
+			"name": {
+				Type:          schema.TypeString,
+				Description:   "The name of the DNS PTR record in FQDN format",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  []string{"name", "pointer_domain_name"},
+				ConflictsWith: []string{"pointer_domain_name"},
+			},
+			"pointer_domain_name": {
+				Type:          schema.TypeString,
+				Description:   "The domain name of the DNS PTR record in FQDN format",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  []string{"name", "pointer_domain_name"},
+				ConflictsWith: []string{"name"},
+			},
+			"ip_v4_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv4 Address of the record",
+				Optional:         true,
+				AtLeastOneOf:     []string{"ip_v4_address", "ip_v6_address"},
+				ConflictsWith:    []string{"ip_v6_address"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+			},
+			"ip_v6_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv6 Address of the record",
+				Optional:         true,
+				AtLeastOneOf:     []string{"ip_v4_address", "ip_v6_address"},
+				ConflictsWith:    []string{"ip_v4_address"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv6Address),
 			},
 			"dns_name": {
 				Type:        schema.TypeString,
-				Description: "DNS name of A record",
+				Description: "The name for a DNS PTR record in punycode format",
 				Computed:    true,
 			},
-			"ip_address": {
-				Type:             schema.TypeString,
-				Description:      "IP address",
-				Required:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+			"dns_pointer_domain_name": {
+				Type:        schema.TypeString,
+				Description: "The domain name of the DNS PTR record in punycode format",
+				Computed:    true,
 			},
 			"comment": {
 				Type:        schema.TypeString,
@@ -70,7 +96,7 @@ func resourceARecord() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of A record",
+				Description:      "Extensible attributes of ptr record",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validateEa,
@@ -83,13 +109,16 @@ func resourceARecord() *schema.Resource {
 	}
 }
 
-func convertARecordToResourceData(client *infoblox.Client, d *schema.ResourceData, record *infoblox.ARecord) diag.Diagnostics {
+func convertPtrRecordToResourceData(client *infoblox.Client, d *schema.ResourceData, record *infoblox.PtrRecord) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	d.Set("ref", record.Ref)
-	d.Set("hostname", record.Hostname)
+	d.Set("name", record.Name)
+	d.Set("pointer_domain_name", record.PointerDomainName)
+	d.Set("ip_v4_address", record.IPv4Address)
+	d.Set("ip_v6_address", record.IPv6Address)
 	d.Set("dns_name", record.DNSName)
-	d.Set("ip_address", record.IPAddress)
+	d.Set("dns_pointer_domain_name", record.DNSPointerDomainName)
 	d.Set("comment", record.Comment)
 	d.Set("disable", record.Disable)
 	d.Set("view", record.View)
@@ -105,12 +134,15 @@ func convertARecordToResourceData(client *infoblox.Client, d *schema.ResourceDat
 	return diags
 }
 
-func convertResourceDataToARecord(client *infoblox.Client, d *schema.ResourceData) (*infoblox.ARecord, error) {
-	var record infoblox.ARecord
+func convertResourceDataToPtrRecord(client *infoblox.Client, d *schema.ResourceData) (*infoblox.PtrRecord, error) {
+	var record infoblox.PtrRecord
 
-	record.Hostname = d.Get("hostname").(string)
+	record.Name = d.Get("name").(string)
+	record.PointerDomainName = d.Get("pointer_domain_name").(string)
+	record.IPv4Address = d.Get("ip_v4_address").(string)
+	record.IPv6Address = d.Get("ip_v6_address").(string)
 	record.DNSName = d.Get("dns_name").(string)
-	record.IPAddress = d.Get("ip_address").(string)
+	record.DNSPointerDomainName = d.Get("dns_pointer_domain_name").(string)
 	record.Comment = d.Get("comment").(string)
 	record.Disable = newBool(d.Get("disable").(bool))
 	record.View = d.Get("view").(string)
@@ -134,19 +166,19 @@ func convertResourceDataToARecord(client *infoblox.Client, d *schema.ResourceDat
 	return &record, nil
 }
 
-func resourceARecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourcePtrRecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 	ref := d.Id()
 
-	record, err := client.GetARecordByRef(ref, nil)
+	record, err := client.GetPtrRecordByRef(ref, nil)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
-	check := convertARecordToResourceData(client, d, &record)
+	check := convertPtrRecordToResourceData(client, d, &record)
 	if check.HasError() {
 		return check
 	}
@@ -156,18 +188,18 @@ func resourceARecordRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return diags
 }
 
-func resourceARecordCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourcePtrRecordCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 
-	record, err := convertResourceDataToARecord(client, d)
+	record, err := convertResourceDataToPtrRecord(client, d)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
-	err = client.CreateARecord(record)
+	err = client.CreatePtrRecord(record)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
@@ -178,22 +210,31 @@ func resourceARecordCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(record.Ref)
-	return resourceARecordRead(ctx, d, m)
+	return resourcePtrRecordRead(ctx, d, m)
 }
 
-func resourceARecordUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
+func resourcePtrRecordUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
 	client := m.(*infoblox.Client)
 
-	var record infoblox.ARecord
+	var record infoblox.PtrRecord
 
-	if d.HasChange("hostname") {
-		record.Hostname = d.Get("hostname").(string)
+	if d.HasChange("name") {
+		record.Name = d.Get("name").(string)
+	}
+	if d.HasChange("pointer_domain_name") {
+		record.PointerDomainName = d.Get("pointer_domain_name").(string)
+	}
+	if d.HasChange("ip_v4_address") {
+		record.IPv4Address = d.Get("ip_v4_address").(string)
+	}
+	if d.HasChange("ip_v6_address") {
+		record.IPv6Address = d.Get("ip_v6_address").(string)
 	}
 	if d.HasChange("dns_name") {
 		record.DNSName = d.Get("dns_name").(string)
 	}
-	if d.HasChange("ip_address") {
-		record.IPAddress = d.Get("ip_address").(string)
+	if d.HasChange("dns_pointer_domain_name") {
+		record.DNSPointerDomainName = d.Get("dns_pointer_domain_name").(string)
 	}
 	if d.HasChange("comment") {
 		record.Comment = d.Get("comment").(string)
@@ -223,23 +264,23 @@ func resourceARecordUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 	}
-	changedRecord, err := client.UpdateARecord(d.Id(), record)
+	changedRecord, err := client.UpdatePtrRecord(d.Id(), record)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
 	d.SetId(changedRecord.Ref)
-	return resourceARecordRead(ctx, d, m)
+	return resourcePtrRecordRead(ctx, d, m)
 }
 
-func resourceARecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourcePtrRecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 	ref := d.Id()
 
-	err := client.DeleteARecord(ref)
+	err := client.DeletePtrRecord(ref)
 	if err != nil {
 		return diag.FromErr(err)
 	}
