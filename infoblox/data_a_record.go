@@ -14,7 +14,6 @@ var (
 		"hostname",
 		"ref",
 		"ip_address",
-		"dns_name",
 	}
 )
 
@@ -24,56 +23,53 @@ func dataSourceARecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of A record object",
+				Description:   "Reference id of A record object.",
 				Optional:      true,
 				Computed:      true,
 				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"hostname", "ip_address", "dns_name"},
+				ConflictsWith: remove(dataARecordRequiredSearchFields, "ref", true),
 			},
 			"hostname": {
 				Type:          schema.TypeString,
-				Description:   "Hostname of A record",
+				Description:   "Hostname of A record.",
 				Optional:      true,
 				Computed:      true,
 				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "ip_address", "dns_name"},
+				ConflictsWith: remove(dataARecordRequiredSearchFields, "hostname", true),
 			},
 			"dns_name": {
-				Type:          schema.TypeString,
-				Description:   "DNS name of A record",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: []string{"hostname", "ip_address", "ref"},
+				Type:        schema.TypeString,
+				Description: "The name for an A record in punycode format.",
+				Computed:    true,
 			},
 			"ip_address": {
 				Type:             schema.TypeString,
-				Description:      "IP address",
+				Description:      "The IPv4 Address of the record.",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 				AtLeastOneOf:     dataARecordRequiredSearchFields,
-				ConflictsWith:    []string{"hostname", "ref", "dns_name"},
+				ConflictsWith:    remove(dataARecordRequiredSearchFields, "ip_address", true),
 			},
 			"comment": {
 				Type:        schema.TypeString,
-				Description: "Comment string",
+				Description: "Comment for the record; maximum 256 characters.",
 				Computed:    true,
 			},
 			"disable": {
 				Type:        schema.TypeBool,
-				Description: "Disable",
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
 				Computed:    true,
 			},
 			"view": {
 				Type:        schema.TypeString,
-				Description: "DNS view",
+				Description: "The name of the DNS view in which the record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"zone": {
 				Type:        schema.TypeString,
-				Description: "DNS zone",
+				Description: "The name of the zone in which the record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
@@ -87,7 +83,7 @@ func dataSourceARecord() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of A record",
+				Description: "Extensible attributes of A record (Values are JSON encoded).",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,

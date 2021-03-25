@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
@@ -32,51 +33,57 @@ func resourceCNameRecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
-				Description: "Reference id of cname record object",
+				Description: "Reference id of cname record object.",
 				Computed:    true,
 			},
 			"alias": {
 				Type:        schema.TypeString,
-				Description: "Alias",
+				Description: "The name for a CNAME record in FQDN format.",
 				Required:    true,
 			},
 			"canonical": {
 				Type:        schema.TypeString,
-				Description: "Canonical name",
+				Description: "Canonical name in FQDN format.",
 				Required:    true,
 			},
 			"dns_name": {
 				Type:        schema.TypeString,
-				Description: "DNS name of cname record",
+				Description: "The name for the CNAME record in punycode format.",
+				Computed:    true,
+			},
+			"dns_canonical": {
+				Type:        schema.TypeString,
+				Description: "Canonical name in punycode format.",
 				Computed:    true,
 			},
 			"comment": {
-				Type:        schema.TypeString,
-				Description: "Comment string",
-				Optional:    true,
-				Computed:    true,
+				Type:             schema.TypeString,
+				Description:      "Comment for the record; maximum 256 characters.",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
 			},
 			"disable": {
 				Type:        schema.TypeBool,
-				Description: "Disable",
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"view": {
 				Type:        schema.TypeString,
-				Description: "DNS view",
+				Description: "The name of the DNS view in which the record resides.",
 				Optional:    true,
 				ForceNew:    true,
 				Computed:    true,
 			},
 			"zone": {
 				Type:        schema.TypeString,
-				Description: "DNS zone",
+				Description: "The name of the zone in which the record resides.",
 				Computed:    true,
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of cname record",
+				Description:      "Extensible attributes of cname record (Values are JSON encoded).",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validateEa,

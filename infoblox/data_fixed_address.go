@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
@@ -22,23 +23,23 @@ func dataSourceFixedAddress() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of host fixed address object",
+				Description:   "Reference id of host fixed address object.",
 				Optional:      true,
 				Computed:      true,
-				ConflictsWith: []string{"hostname", "ip_address"},
 				AtLeastOneOf:  dataFixedAddressRequiredSearchFields,
+				ConflictsWith: remove(dataFixedAddressRequiredSearchFields, "ref", true),
 			},
 			"hostname": {
 				Type:          schema.TypeString,
-				Description:   "Hostname of host fixed address",
+				Description:   "This field contains the name of this fixed address.",
 				Optional:      true,
 				Computed:      true,
-				ConflictsWith: []string{"ref", "ip_address"},
 				AtLeastOneOf:  dataFixedAddressRequiredSearchFields,
+				ConflictsWith: remove(dataFixedAddressRequiredSearchFields, "hostname", true),
 			},
 			"cidr": {
 				Type:        schema.TypeString,
-				Description: "Hostname of host fixed address",
+				Description: "The network to which this fixed address belongs, in IPv4 Address/CIDR format.",
 				Computed:    true,
 			},
 			"query_params": {
@@ -49,64 +50,70 @@ func dataSourceFixedAddress() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			"ip_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv4 Address of the fixed address.",
+				Computed:         true,
+				Optional:         true,
+				AtLeastOneOf:     dataFixedAddressRequiredSearchFields,
+				ConflictsWith:    remove(dataFixedAddressRequiredSearchFields, "ip_address", true),
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+			},
 			"comment": {
 				Type:        schema.TypeString,
-				Description: "Comment string",
+				Description: "Comment for the fixed address; maximum 256 characters.",
 				Computed:    true,
-			},
-			"ip_address": {
-				Type:          schema.TypeBool,
-				Description:   "IPv4 address",
-				Computed:      true,
-				Optional:      true,
-				ConflictsWith: []string{"ref", "hostname"},
-				AtLeastOneOf:  dataFixedAddressRequiredSearchFields,
 			},
 			"network_view": {
 				Type:        schema.TypeString,
-				Description: "Network view",
+				Description: "The name of the network view in which this fixed address resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"mac": {
 				Type:        schema.TypeString,
-				Description: "MAC address",
+				Description: "The MAC address value for this fixed address.",
+				Computed:    true,
+			},
+			"match_client": {
+				Type:        schema.TypeString,
+				Description: "The match_client value for this fixed address.",
 				Computed:    true,
 			},
 			"disable": {
 				Type:        schema.TypeBool,
-				Description: "Disabled",
+				Description: "Determines whether a fixed address is disabled or not. When this is set to False, the fixed address is enabled.",
 				Computed:    true,
 			},
 			"option": {
 				Type:        schema.TypeSet,
-				Description: "DHCP options associated with network",
+				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Name of DHCP option",
+							Description: "Name of the DHCP option.",
 							Computed:    true,
 						},
 						"code": {
 							Type:        schema.TypeInt,
-							Description: "Option numberic id",
+							Description: "The code of the DHCP option.",
 							Computed:    true,
 						},
 						"use_option": {
 							Type:        schema.TypeBool,
-							Description: "Use this dhcp option",
+							Description: "Only applies to special options that are displayed separately from other options and have a use flag.",
 							Computed:    true,
 						},
 						"value": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "Value of the DHCP option.",
 							Computed:    true,
 						},
 						"vendor_class": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "The name of the space this DHCP option is associated to.",
 							Computed:    true,
 						},
 					},
@@ -114,7 +121,7 @@ func dataSourceFixedAddress() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of host fixed address",
+				Description: "Extensible attributes of fixed address (Values are JSON encoded).",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -164,6 +171,11 @@ func dataSourceFixedAddressRead(ctx context.Context, d *schema.ResourceData, m i
 		}
 		fixedAddress =
 			f[0]
+	}
+
+	check := convertFixedAddressToResourceData(client, d, &fixedAddress)
+	if check.HasError() {
+		return check
 	}
 
 	d.SetId(fixedAddress.Ref)

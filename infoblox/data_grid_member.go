@@ -8,34 +8,48 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
+var (
+	dataGridMemberRequiredSearchFields = []string{
+		"hostname",
+		"ref",
+	}
+)
+
 func dataSourceGridMember() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGridMemberRead,
 		Schema: map[string]*schema.Schema{
 			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of network object",
-				Computed:    true,
+				Type:          schema.TypeString,
+				Description:   "Reference id of member.",
+				Computed:      true,
+				Optional:      true,
+				AtLeastOneOf:  dataGridMemberRequiredSearchFields,
+				ConflictsWith: remove(dataGridMemberRequiredSearchFields, "ref", true),
 			},
 			"hostname": {
-				Type:        schema.TypeString,
-				Description: "Hostname of member",
-				Computed:    true,
+				Type:          schema.TypeString,
+				Description:   "Hostname of member in FQDN format.",
+				Computed:      true,
+				Optional:      true,
+				AtLeastOneOf:  dataGridMemberRequiredSearchFields,
+				ConflictsWith: remove(dataGridMemberRequiredSearchFields, "hostname", true),
 			},
 			"config_address_type": {
 				Type:        schema.TypeString,
-				Description: "Configured IP address type",
+				Description: "Configured IP address type.",
 				Computed:    true,
 			},
 			"service_type_configuration": {
 				Type:        schema.TypeString,
-				Description: "Service type configuration",
+				Description: "Service type configuration.",
 				Computed:    true,
 			},
 			"query_params": {
-				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
-				Optional:    true,
+				Type:          schema.TypeMap,
+				Description:   "Additional query parameters.",
+				Optional:      true,
+				ConflictsWith: []string{"ref"},
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -49,6 +63,7 @@ func dataSourceGridMemberRead(ctx context.Context, d *schema.ResourceData, m int
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+	var member infoblox.GridMember
 
 	queryParams := d.Get("query_params").(map[string]interface{})
 	resolvedQueryParams := make(map[string]string)
@@ -57,22 +72,31 @@ func dataSourceGridMemberRead(ctx context.Context, d *schema.ResourceData, m int
 		resolvedQueryParams[k] = v.(string)
 	}
 
-	members, err := client.GetGridMembers(resolvedQueryParams)
+	if ref, ok := d.GetOk("ref"); ok {
+		m, err := client.GetGridMembersByRef(ref.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		member = m
+	} else if hostname, ok := d.GetOk("hostname"); ok {
+		resolvedQueryParams["host_name"] = hostname.(string)
+		members, err := client.GetGridMembersByQuery(resolvedQueryParams)
 
-	if err != nil {
-		return diag.FromErr(err)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(members) > 1 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Multiple values returned",
+				Detail:   "Grid member query returned multiple values when one was expected",
+			})
+			return diags
+		}
+
+		member = members[0]
 	}
-
-	if len(members) > 1 {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Multiple values returned",
-			Detail:   "Grid member query returned multiple values when one was expected",
-		})
-		return diags
-	}
-
-	member := members[0]
 
 	d.Set("ref", member.Ref)
 	d.Set("hostname", member.Hostname)

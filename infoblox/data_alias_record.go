@@ -12,7 +12,6 @@ var (
 	dataAliasRecordRequiredSearchFields = []string{
 		"name",
 		"ref",
-		"dns_name",
 	}
 )
 
@@ -22,65 +21,59 @@ func dataSourceAliasRecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of alias record object",
+				Description:   "Reference id of alias record object.",
 				Optional:      true,
 				Computed:      true,
 				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
-				ConflictsWith: []string{"name", "dns_name"},
+				ConflictsWith: []string{"name"},
 			},
 			"name": {
 				Type:          schema.TypeString,
-				Description:   "The name for an Alias record in FQDN format",
+				Description:   "The name for an Alias record in FQDN format.",
 				Optional:      true,
 				Computed:      true,
 				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "dns_name"},
+				ConflictsWith: []string{"ref"},
 			},
 			"target_name": {
 				Type:        schema.TypeString,
-				Description: "Target name in FQDN format",
+				Description: "Target name in FQDN format.",
 				Computed:    true,
 			},
 			"target_type": {
 				Type:        schema.TypeString,
-				Description: "Target type",
+				Description: "Target type.",
 				Computed:    true,
 			},
 			"dns_name": {
-				Type:          schema.TypeString,
-				Description:   "The name for an Alias record in punycode format",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
-				ConflictsWith: []string{"name", "ref"},
+				Type:        schema.TypeString,
+				Description: "The name for an Alias record in punycode format.",
+				Computed:    true,
 			},
 			"dns_target_name": {
-				Type:          schema.TypeString,
-				Description:   "Target name in punycode format",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataAliasRecordRequiredSearchFields,
-				ConflictsWith: []string{"name", "ref"},
+				Type:        schema.TypeString,
+				Description: "Target name in punycode format.",
+				Computed:    true,
 			},
 			"comment": {
 				Type:        schema.TypeString,
-				Description: "Comment string",
+				Description: "Comment for the record; maximum 256 characters.",
 				Computed:    true,
 			},
 			"disable": {
 				Type:        schema.TypeBool,
-				Description: "Disable",
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
 				Computed:    true,
 			},
 			"view": {
 				Type:        schema.TypeString,
-				Description: "DNS view",
+				Description: "The name of the DNS View in which the record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"zone": {
 				Type:        schema.TypeString,
-				Description: "DNS zone",
+				Description: "The name of the zone in which the record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
@@ -94,7 +87,7 @@ func dataSourceAliasRecord() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of alias record",
+				Description: "Extensible attributes of alias record (Values are JSON encoded).",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,

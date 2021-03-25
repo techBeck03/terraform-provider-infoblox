@@ -82,6 +82,7 @@ func Provider() *schema.Provider {
 			"infoblox_cname_record":             dataSourceCNameRecord(),
 			"infoblox_alias_record":             dataSourceAliasRecord(),
 			"infoblox_ptr_record":               dataSourcePtrRecord(),
+			"infoblox_fixed_address":            dataSourceFixedAddress(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

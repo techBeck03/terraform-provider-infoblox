@@ -2,7 +2,6 @@ package infoblox
 
 import (
 	"context"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -11,12 +10,12 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
-func resourceAliasRecord() *schema.Resource {
+func resourceARecord() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceAliasRecordCreate,
-		ReadContext:   resourceAliasRecordRead,
-		UpdateContext: resourceAliasRecordUpdate,
-		DeleteContext: resourceAliasRecordDelete,
+		CreateContext: resourceARecordCreate,
+		ReadContext:   resourceARecordRead,
+		UpdateContext: resourceARecordUpdate,
+		DeleteContext: resourceARecordDelete,
 		// Importer: &schema.ResourceImporter{
 		// 	State: schema.ImportStatePassthrough,
 		// },
@@ -26,65 +25,53 @@ func resourceAliasRecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
-				Description: "Reference id of alias record object",
+				Description: "Reference id of A record object.",
 				Computed:    true,
 			},
-			"name": {
+			"hostname": {
 				Type:        schema.TypeString,
-				Description: "The name for an Alias record in FQDN format",
+				Description: "Hostname of A record.",
 				Required:    true,
-			},
-			"target_name": {
-				Type:        schema.TypeString,
-				Description: "Target name in FQDN format",
-				Required:    true,
-			},
-			"target_type": {
-				Type:             schema.TypeString,
-				Description:      "Target type",
-				Required:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"A", "AAA", "MX", "NAPTR", "PTR", "SPF", "SRV", "TXT"}, true)),
-				StateFunc: func(val interface{}) string {
-					return strings.ToUpper(val.(string))
-				},
 			},
 			"dns_name": {
 				Type:        schema.TypeString,
-				Description: "DNS name of alias record",
+				Description: "The name for an A record in punycode format.",
 				Computed:    true,
 			},
-			"dns_target_name": {
-				Type:        schema.TypeString,
-				Description: "DNS name of alias record",
-				Computed:    true,
+			"ip_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv4 Address of the record.",
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
 			"comment": {
-				Type:        schema.TypeString,
-				Description: "Comment string",
-				Optional:    true,
-				Computed:    true,
+				Type:             schema.TypeString,
+				Description:      "Comment for the record; maximum 256 characters.",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
 			},
 			"disable": {
 				Type:        schema.TypeBool,
-				Description: "Disable",
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"view": {
 				Type:        schema.TypeString,
-				Description: "DNS view",
+				Description: "The name of the DNS view in which the record resides.",
 				Optional:    true,
 				ForceNew:    true,
 				Computed:    true,
 			},
 			"zone": {
 				Type:        schema.TypeString,
-				Description: "DNS zone",
+				Description: "The name of the zone in which the record resides.",
 				Computed:    true,
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of alias record",
+				Description:      "Extensible attributes of A record (Values are JSON encoded).",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validateEa,
@@ -97,15 +84,13 @@ func resourceAliasRecord() *schema.Resource {
 	}
 }
 
-func convertAliasRecordToResourceData(client *infoblox.Client, d *schema.ResourceData, record *infoblox.AliasRecord) diag.Diagnostics {
+func convertARecordToResourceData(client *infoblox.Client, d *schema.ResourceData, record *infoblox.ARecord) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	d.Set("ref", record.Ref)
-	d.Set("name", record.Name)
-	d.Set("target_name", record.Target)
-	d.Set("target_type", record.TargetType)
+	d.Set("hostname", record.Hostname)
 	d.Set("dns_name", record.DNSName)
-	d.Set("dns_target_name", record.DNSTargetName)
+	d.Set("ip_address", record.IPAddress)
 	d.Set("comment", record.Comment)
 	d.Set("disable", record.Disable)
 	d.Set("view", record.View)
@@ -121,14 +106,12 @@ func convertAliasRecordToResourceData(client *infoblox.Client, d *schema.Resourc
 	return diags
 }
 
-func convertResourceDataToAliasRecord(client *infoblox.Client, d *schema.ResourceData) (*infoblox.AliasRecord, error) {
-	var record infoblox.AliasRecord
+func convertResourceDataToARecord(client *infoblox.Client, d *schema.ResourceData) (*infoblox.ARecord, error) {
+	var record infoblox.ARecord
 
-	record.Name = d.Get("name").(string)
-	record.Target = d.Get("target_name").(string)
-	record.TargetType = d.Get("target_type").(string)
+	record.Hostname = d.Get("hostname").(string)
 	record.DNSName = d.Get("dns_name").(string)
-	record.DNSTargetName = d.Get("dns_target_name").(string)
+	record.IPAddress = d.Get("ip_address").(string)
 	record.Comment = d.Get("comment").(string)
 	record.Disable = newBool(d.Get("disable").(bool))
 	record.View = d.Get("view").(string)
@@ -152,19 +135,19 @@ func convertResourceDataToAliasRecord(client *infoblox.Client, d *schema.Resourc
 	return &record, nil
 }
 
-func resourceAliasRecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceARecordRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 	ref := d.Id()
 
-	record, err := client.GetAliasRecordByRef(ref, nil)
+	record, err := client.GetARecordByRef(ref, nil)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
-	check := convertAliasRecordToResourceData(client, d, &record)
+	check := convertARecordToResourceData(client, d, &record)
 	if check.HasError() {
 		return check
 	}
@@ -174,18 +157,18 @@ func resourceAliasRecordRead(ctx context.Context, d *schema.ResourceData, m inte
 	return diags
 }
 
-func resourceAliasRecordCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceARecordCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 
-	record, err := convertResourceDataToAliasRecord(client, d)
+	record, err := convertResourceDataToARecord(client, d)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
-	err = client.CreateAliasRecord(record)
+	err = client.CreateARecord(record)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
@@ -196,28 +179,22 @@ func resourceAliasRecordCreate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	d.SetId(record.Ref)
-	return resourceAliasRecordRead(ctx, d, m)
+	return resourceARecordRead(ctx, d, m)
 }
 
-func resourceAliasRecordUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
+func resourceARecordUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) (diags diag.Diagnostics) {
 	client := m.(*infoblox.Client)
 
-	var record infoblox.AliasRecord
+	var record infoblox.ARecord
 
-	if d.HasChange("name") {
-		record.Name = d.Get("name").(string)
-	}
-	if d.HasChange("target_name") {
-		record.Target = d.Get("target_name").(string)
-	}
-	if d.HasChange("target_type") {
-		record.TargetType = d.Get("target_type").(string)
+	if d.HasChange("hostname") {
+		record.Hostname = d.Get("hostname").(string)
 	}
 	if d.HasChange("dns_name") {
 		record.DNSName = d.Get("dns_name").(string)
 	}
-	if d.HasChange("dns_target_name") {
-		record.DNSTargetName = d.Get("dns_target_name").(string)
+	if d.HasChange("ip_address") {
+		record.IPAddress = d.Get("ip_address").(string)
 	}
 	if d.HasChange("comment") {
 		record.Comment = d.Get("comment").(string)
@@ -247,23 +224,23 @@ func resourceAliasRecordUpdate(ctx context.Context, d *schema.ResourceData, m in
 			}
 		}
 	}
-	changedRecord, err := client.UpdateAliasRecord(d.Id(), record)
+	changedRecord, err := client.UpdateARecord(d.Id(), record)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
 	}
 
 	d.SetId(changedRecord.Ref)
-	return resourceAliasRecordRead(ctx, d, m)
+	return resourceARecordRead(ctx, d, m)
 }
 
-func resourceAliasRecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceARecordDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
 	ref := d.Id()
 
-	err := client.DeleteAliasRecord(ref)
+	err := client.DeleteARecord(ref)
 	if err != nil {
 		return diag.FromErr(err)
 	}

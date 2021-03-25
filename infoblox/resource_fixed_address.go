@@ -34,62 +34,63 @@ func resourceFixedAddress() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
-				Description: "Reference id of host fixed address object",
+				Description: "Reference id of host fixed address object.",
 				Computed:    true,
 			},
 			"hostname": {
 				Type:        schema.TypeString,
-				Description: "Hostname of host fixed address",
+				Description: "This field contains the name of this fixed address.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"cidr": {
 				Type:             schema.TypeString,
-				Description:      "Hostname of host fixed address",
+				Description:      "The network to which this fixed address belongs, in IPv4 Address/CIDR format.",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
-			"comment": {
-				Type:        schema.TypeString,
-				Description: "Comment string",
-				Optional:    true,
-				Computed:    true,
-			},
 			"ip_address": {
 				Type:             schema.TypeString,
-				Description:      "IPv4 address",
+				Description:      "The IPv4 Address of the fixed address.",
 				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
+			"comment": {
+				Type:             schema.TypeString,
+				Description:      "Comment for the fixed address; maximum 256 characters.",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
+			},
 			"network_view": {
 				Type:        schema.TypeString,
-				Description: "Network view",
+				Description: "The name of the network view in which this fixed address resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"mac": {
 				Type:        schema.TypeString,
-				Description: "MAC address",
+				Description: "The MAC address value for this fixed address.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"match_client": {
 				Type:             schema.TypeString,
-				Description:      "Match client",
+				Description:      "The match_client value for this fixed address.",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MAC_ADDRESS", "CLIENT_ID", "RESERVED", "CIRCUIT_ID", "REMOTE_ID"}, false)),
 			},
 			"disable": {
 				Type:        schema.TypeBool,
-				Description: "Disabled",
+				Description: "Determines whether a fixed address is disabled or not. When this is set to False, the fixed address is enabled.",
 				Optional:    true,
 				Default:     false,
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
-				Description:  "Ref for grid needed for restarting services",
+				Description:  "Ref for grid needed for restarting services.",
 				Optional:     true,
 				RequiredWith: []string{"restart_if_needed"},
 			},
@@ -100,14 +101,14 @@ func resourceFixedAddress() *schema.Resource {
 			},
 			"member": {
 				Type:        schema.TypeList,
-				Description: "Grid member associated with range",
+				Description: "Grid member associated with range.",
 				Required:    true,
 				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"struct": {
 							Type:             schema.TypeString,
-							Description:      "Struct type of member",
+							Description:      "Struct type of member.",
 							Optional:         true,
 							Default:          "dhcpmember",
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"dhcpmember", "msdhcpserver"}, true)),
@@ -117,7 +118,7 @@ func resourceFixedAddress() *schema.Resource {
 						},
 						"ip_v4_address": {
 							Type:             schema.TypeString,
-							Description:      "IPv4 address",
+							Description:      "IPv4 address.",
 							Optional:         true,
 							Computed:         true,
 							ConflictsWith:    []string{"member.0.ip_v6_address"},
@@ -125,7 +126,7 @@ func resourceFixedAddress() *schema.Resource {
 						},
 						"ip_v6_address": {
 							Type:             schema.TypeString,
-							Description:      "IPv6 address",
+							Description:      "IPv6 address.",
 							Optional:         true,
 							Computed:         true,
 							ConflictsWith:    []string{"member.0.ip_v4_address"},
@@ -133,7 +134,7 @@ func resourceFixedAddress() *schema.Resource {
 						},
 						"hostname": {
 							Type:        schema.TypeString,
-							Description: "Hostname of member",
+							Description: "Hostname of member.",
 							Required:    true,
 						},
 					},
@@ -141,35 +142,35 @@ func resourceFixedAddress() *schema.Resource {
 			},
 			"option": {
 				Type:        schema.TypeSet,
-				Description: "DHCP options associated with network",
+				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
 				Optional:    true,
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Name of DHCP option",
+							Description: "Name of the DHCP option.",
 							Required:    true,
 						},
 						"code": {
 							Type:        schema.TypeInt,
-							Description: "Code of the DHCP option",
+							Description: "The code of the DHCP option.",
 							Computed:    true,
 						},
 						"use_option": {
 							Type:        schema.TypeBool,
-							Description: "Use this dhcp option",
+							Description: "Only applies to special options that are displayed separately from other options and have a use flag.",
 							Optional:    true,
 							Default:     true,
 						},
 						"value": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "Value of the DHCP option.",
 							Required:    true,
 						},
 						"vendor_class": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "The name of the space this DHCP option is associated to.",
 							Optional:    true,
 							Default:     "DHCP",
 						},
@@ -178,7 +179,7 @@ func resourceFixedAddress() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of range",
+				Description:      "Extensible attributes of fixed address (Values are JSON encoded).",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validateEa,
