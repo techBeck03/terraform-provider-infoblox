@@ -24,15 +24,49 @@ func resourceAliasRecord() *schema.Resource {
 			makeEACustomDiff("extensible_attributes"),
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of alias record object.",
+			"comment": {
+				Type:             schema.TypeString,
+				Description:      "Comment for the record; maximum 256 characters.",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
+			},
+			"disable": {
+				Type:        schema.TypeBool,
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
+				Optional:    true,
 				Computed:    true,
+			},
+			"dns_name": {
+				Type:        schema.TypeString,
+				Description: "The name for an Alias record in punycode format.",
+				Computed:    true,
+			},
+			"dns_target_name": {
+				Type:        schema.TypeString,
+				Description: "Target name in punycode format.",
+				Computed:    true,
+			},
+			"extensible_attributes": {
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes of alias record (Values are JSON encoded).",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Description: "The name for an Alias record in FQDN format.",
 				Required:    true,
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id of alias record object.",
+				Computed:    true,
 			},
 			"target_name": {
 				Type:        schema.TypeString,
@@ -48,29 +82,6 @@ func resourceAliasRecord() *schema.Resource {
 					return strings.ToUpper(val.(string))
 				},
 			},
-			"dns_name": {
-				Type:        schema.TypeString,
-				Description: "The name for an Alias record in punycode format.",
-				Computed:    true,
-			},
-			"dns_target_name": {
-				Type:        schema.TypeString,
-				Description: "Target name in punycode format.",
-				Computed:    true,
-			},
-			"comment": {
-				Type:             schema.TypeString,
-				Description:      "Comment for the record; maximum 256 characters.",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
-			},
-			"disable": {
-				Type:        schema.TypeBool,
-				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
-				Optional:    true,
-				Computed:    true,
-			},
 			"view": {
 				Type:        schema.TypeString,
 				Description: "The name of the DNS View in which the record resides.",
@@ -82,17 +93,6 @@ func resourceAliasRecord() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: "The name of the zone in which the record resides.",
 				Computed:    true,
-			},
-			"extensible_attributes": {
-				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of alias record (Values are JSON encoded).",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validateEa,
-				DiffSuppressFunc: eaSuppressDiff,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
 			},
 		},
 	}

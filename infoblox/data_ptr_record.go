@@ -16,8 +16,6 @@ var (
 		"pointer_domain_name",
 		"ip_v4_address",
 		"ip_v6_address",
-		"dns_name",
-		"dns_pointer_domain_name",
 	}
 )
 
@@ -27,7 +25,7 @@ func dataSourcePtrRecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of ptr record object",
+				Description:   "Reference id of ptr record object.",
 				Optional:      true,
 				Computed:      true,
 				AtLeastOneOf:  dataPtrRecordRequiredSearchFields,
@@ -36,23 +34,23 @@ func dataSourcePtrRecord() *schema.Resource {
 			},
 			"name": {
 				Type:          schema.TypeString,
-				Description:   "The name of the DNS PTR record in FQDN format",
+				Description:   "The name of the DNS PTR record in FQDN format.",
 				Optional:      true,
 				Computed:      true,
 				AtLeastOneOf:  dataPtrRecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "dns_name", "pointer_domain_name", "dns_pointer_domain_name"},
+				ConflictsWith: []string{"ref", "pointer_domain_name"},
 			},
 			"pointer_domain_name": {
 				Type:          schema.TypeString,
-				Description:   "The domain name of the DNS PTR record in FQDN format",
+				Description:   "The domain name of the DNS PTR record in FQDN format.",
 				Optional:      true,
 				Computed:      true,
 				AtLeastOneOf:  dataPtrRecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "dns_name", "name", "dns_pointer_domain_name"},
+				ConflictsWith: []string{"ref", "name"},
 			},
 			"ip_v4_address": {
 				Type:             schema.TypeString,
-				Description:      "The IPv4 Address of the record",
+				Description:      "The IPv4 Address of the record.",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
@@ -61,7 +59,7 @@ func dataSourcePtrRecord() *schema.Resource {
 			},
 			"ip_v6_address": {
 				Type:             schema.TypeString,
-				Description:      "The IPv6 Address of the record",
+				Description:      "The IPv6 Address of the record.",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv6Address),
@@ -69,46 +67,40 @@ func dataSourcePtrRecord() *schema.Resource {
 				ConflictsWith:    []string{"ref", "ip_v4_address"},
 			},
 			"dns_name": {
-				Type:          schema.TypeString,
-				Description:   "The name for a DNS PTR record in punycode format",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataPtrRecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "name", "pointer_domain_name", "dns_pointer_domain_name"},
+				Type:        schema.TypeString,
+				Description: "The name for a DNS PTR record in punycode format.",
+				Computed:    true,
 			},
 			"dns_pointer_domain_name": {
-				Type:          schema.TypeString,
-				Description:   "The domain name of the DNS PTR record in punycode format",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataPtrRecordRequiredSearchFields,
-				ConflictsWith: []string{"ref", "name", "pointer_domain_name", "dns_name"},
+				Type:        schema.TypeString,
+				Description: "The domain name of the DNS PTR record in punycode format.",
+				Computed:    true,
 			},
 			"comment": {
 				Type:        schema.TypeString,
-				Description: "Comment string",
+				Description: "Comment for the record; maximum 256 characters.",
 				Computed:    true,
 			},
 			"disable": {
 				Type:        schema.TypeBool,
-				Description: "Disable",
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
 				Computed:    true,
 			},
 			"view": {
 				Type:        schema.TypeString,
-				Description: "DNS view",
+				Description: "Name of the DNS View in which the record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"zone": {
 				Type:        schema.TypeString,
-				Description: "DNS zone",
+				Description: "The name of the zone in which the record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"query_params": {
 				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
+				Description: "Additional query parameters.",
 				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -116,7 +108,7 @@ func dataSourcePtrRecord() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of ptr record",
+				Description: "Extensible attributes of ptr record (Values are JSON encoded).",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,

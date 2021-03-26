@@ -30,24 +30,24 @@ func resourceNetwork() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
-				Description: "Reference id of network object",
+				Description: "Reference id of network object.",
 				Computed:    true,
 			},
 			"cidr": {
 				Type:             schema.TypeString,
-				Description:      "CIDR of network",
+				Description:      "The network address in IPv4 Address/CIDR format.",
 				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
 			"gateway_ip": {
 				Type:             schema.TypeString,
-				Description:      "Default gateway IP address",
+				Description:      "Default gateway IPv4 address.",
 				Optional:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPAddress),
 			},
 			"gateway_comment": {
 				Type:             schema.TypeString,
-				Description:      "Comment for gateway reservation",
+				Description:      "Comment for gateway reservation.",
 				Optional:         true,
 				Default:          "Gateway",
 				AtLeastOneOf:     []string{"gateway_ip"},
@@ -55,7 +55,7 @@ func resourceNetwork() *schema.Resource {
 			},
 			"gateway_extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes for gateway fixed reservation",
+				Description:      "Extensible attributes for gateway fixed reservation.",
 				Optional:         true,
 				Computed:         true,
 				AtLeastOneOf:     []string{"gateway_ip"},
@@ -66,44 +66,45 @@ func resourceNetwork() *schema.Resource {
 				},
 			},
 			"comment": {
-				Type:        schema.TypeString,
-				Description: "Comment string",
-				Optional:    true,
-				Computed:    true,
+				Type:             schema.TypeString,
+				Description:      "Comment for the record; maximum 256 characters.",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
 			},
 			"disable_dhcp": {
 				Type:        schema.TypeBool,
-				Description: "Disable for DHCP",
+				Description: "Disable for DHCP.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
-				Description:  "Ref for grid needed for restarting services",
+				Description:  "Ref for grid needed for restarting services.",
 				Optional:     true,
 				RequiredWith: []string{"restart_if_needed"},
 			},
 			"restart_if_needed": {
 				Type:        schema.TypeBool,
-				Description: "Restart dhcp services if needed",
+				Description: "Restart dhcp services if needed.",
 				Optional:    true,
 			},
 			"network_view": {
 				Type:        schema.TypeString,
-				Description: "Network view",
+				Description: "The name of the network view in which this network resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"member": {
 				Type:        schema.TypeList,
-				Description: "Grid members associated with network",
+				Description: "Grid members associated with network.",
 				Optional:    true,
 				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"struct": {
 							Type:             schema.TypeString,
-							Description:      "Struct type of member",
+							Description:      "Struct type of member.",
 							Optional:         true,
 							Default:          "dhcpmember",
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"dhcpmember", "msdhcpserver"}, true)),
@@ -113,7 +114,7 @@ func resourceNetwork() *schema.Resource {
 						},
 						"ip_v4_address": {
 							Type:             schema.TypeString,
-							Description:      "IPv4 address",
+							Description:      "IPv4 address.",
 							Optional:         true,
 							Computed:         true,
 							ConflictsWith:    []string{"member.0.ip_v6_address"},
@@ -121,7 +122,7 @@ func resourceNetwork() *schema.Resource {
 						},
 						"ip_v6_address": {
 							Type:             schema.TypeString,
-							Description:      "IPv6 address",
+							Description:      "IPv6 address.",
 							Optional:         true,
 							Computed:         true,
 							ConflictsWith:    []string{"member.0.ip_v4_address"},
@@ -129,7 +130,7 @@ func resourceNetwork() *schema.Resource {
 						},
 						"hostname": {
 							Type:        schema.TypeString,
-							Description: "Hostname of member",
+							Description: "Hostname of member.",
 							Required:    true,
 						},
 					},
@@ -137,35 +138,36 @@ func resourceNetwork() *schema.Resource {
 			},
 			"option": {
 				Type:        schema.TypeSet,
-				Description: "DHCP options associated with network",
+				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
 				Optional:    true,
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Name of DHCP option",
+							Description: "Name of the DHCP option.",
 							Required:    true,
 						},
 						"code": {
 							Type:        schema.TypeInt,
-							Description: "Code of the DHCP option",
+							Description: "The code of the DHCP option.",
+							Optional:    true,
 							Computed:    true,
 						},
 						"use_option": {
 							Type:        schema.TypeBool,
-							Description: "Use this dhcp option",
+							Description: "Only applies to special options that are displayed separately from other options and have a use flag.",
 							Optional:    true,
 							Default:     true,
 						},
 						"value": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "Value of the DHCP option.",
 							Required:    true,
 						},
 						"vendor_class": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "The name of the space this DHCP option is associated to.",
 							Optional:    true,
 							Default:     "DHCP",
 						},
@@ -174,7 +176,7 @@ func resourceNetwork() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of network",
+				Description:      "Extensible attributes of network (Values are JSON encoded).",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validateEa,

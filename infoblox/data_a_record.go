@@ -21,13 +21,28 @@ func dataSourceARecord() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceARecordRead,
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of A record object.",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataARecordRequiredSearchFields,
-				ConflictsWith: remove(dataARecordRequiredSearchFields, "ref", true),
+			"comment": {
+				Type:        schema.TypeString,
+				Description: "Comment for the record; maximum 256 characters.",
+				Computed:    true,
+			},
+			"disable": {
+				Type:        schema.TypeBool,
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
+				Computed:    true,
+			},
+			"dns_name": {
+				Type:        schema.TypeString,
+				Description: "The name for an A record in punycode format.",
+				Computed:    true,
+			},
+			"extensible_attributes": {
+				Type:        schema.TypeMap,
+				Description: "Extensible attributes of A record (Values are JSON encoded).",
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"hostname": {
 				Type:          schema.TypeString,
@@ -36,11 +51,6 @@ func dataSourceARecord() *schema.Resource {
 				Computed:      true,
 				AtLeastOneOf:  dataARecordRequiredSearchFields,
 				ConflictsWith: remove(dataARecordRequiredSearchFields, "hostname", true),
-			},
-			"dns_name": {
-				Type:        schema.TypeString,
-				Description: "The name for an A record in punycode format.",
-				Computed:    true,
 			},
 			"ip_address": {
 				Type:             schema.TypeString,
@@ -51,15 +61,21 @@ func dataSourceARecord() *schema.Resource {
 				AtLeastOneOf:     dataARecordRequiredSearchFields,
 				ConflictsWith:    remove(dataARecordRequiredSearchFields, "ip_address", true),
 			},
-			"comment": {
-				Type:        schema.TypeString,
-				Description: "Comment for the record; maximum 256 characters.",
-				Computed:    true,
+			"query_params": {
+				Type:        schema.TypeMap,
+				Description: "Additional query parameters",
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
-			"disable": {
-				Type:        schema.TypeBool,
-				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
-				Computed:    true,
+			"ref": {
+				Type:          schema.TypeString,
+				Description:   "Reference id of A record object.",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  dataARecordRequiredSearchFields,
+				ConflictsWith: remove(dataARecordRequiredSearchFields, "ref", true),
 			},
 			"view": {
 				Type:        schema.TypeString,
@@ -72,22 +88,6 @@ func dataSourceARecord() *schema.Resource {
 				Description: "The name of the zone in which the record resides.",
 				Optional:    true,
 				Computed:    true,
-			},
-			"query_params": {
-				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
-				Optional:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"extensible_attributes": {
-				Type:        schema.TypeMap,
-				Description: "Extensible attributes of A record (Values are JSON encoded).",
-				Computed:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
 			},
 		},
 	}

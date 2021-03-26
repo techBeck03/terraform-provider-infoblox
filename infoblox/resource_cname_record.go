@@ -31,11 +31,6 @@ func resourceCNameRecord() *schema.Resource {
 			makeEACustomDiff("extensible_attributes"),
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of cname record object.",
-				Computed:    true,
-			},
 			"alias": {
 				Type:        schema.TypeString,
 				Description: "The name for a CNAME record in FQDN format.",
@@ -45,16 +40,6 @@ func resourceCNameRecord() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: "Canonical name in FQDN format.",
 				Required:    true,
-			},
-			"dns_name": {
-				Type:        schema.TypeString,
-				Description: "The name for the CNAME record in punycode format.",
-				Computed:    true,
-			},
-			"dns_canonical": {
-				Type:        schema.TypeString,
-				Description: "Canonical name in punycode format.",
-				Computed:    true,
 			},
 			"comment": {
 				Type:             schema.TypeString,
@@ -69,16 +54,14 @@ func resourceCNameRecord() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
-			"view": {
+			"dns_canonical": {
 				Type:        schema.TypeString,
-				Description: "The name of the DNS view in which the record resides.",
-				Optional:    true,
-				ForceNew:    true,
+				Description: "Canonical name in punycode format.",
 				Computed:    true,
 			},
-			"zone": {
+			"dns_name": {
 				Type:        schema.TypeString,
-				Description: "The name of the zone in which the record resides.",
+				Description: "The name for the CNAME record in punycode format.",
 				Computed:    true,
 			},
 			"extensible_attributes": {
@@ -91,6 +74,23 @@ func resourceCNameRecord() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id of cname record object.",
+				Computed:    true,
+			},
+			"view": {
+				Type:        schema.TypeString,
+				Description: "The name of the DNS view in which the record resides.",
+				Optional:    true,
+				ForceNew:    true,
+				Computed:    true,
+			},
+			"zone": {
+				Type:        schema.TypeString,
+				Description: "The name of the zone in which the record resides.",
+				Computed:    true,
 			},
 		},
 	}

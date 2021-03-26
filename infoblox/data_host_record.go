@@ -21,7 +21,7 @@ func dataSourceHostRecord() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of host record object",
+				Description:   "Reference id of host record object.",
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"hostname"},
@@ -29,7 +29,7 @@ func dataSourceHostRecord() *schema.Resource {
 			},
 			"hostname": {
 				Type:          schema.TypeString,
-				Description:   "Hostname of host record",
+				Description:   "The host name in FQDN format.",
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"ref"},
@@ -37,34 +37,34 @@ func dataSourceHostRecord() *schema.Resource {
 			},
 			"comment": {
 				Type:        schema.TypeString,
-				Description: "Comment string",
+				Description: "Comment for the record; maximum 256 characters.",
 				Computed:    true,
 			},
 			"enable_dns": {
 				Type:        schema.TypeBool,
-				Description: "Enable for DNS",
+				Description: "When false, the host does not have parent zone information.",
 				Computed:    true,
 			},
 			"network_view": {
 				Type:        schema.TypeString,
-				Description: "Network view",
+				Description: "The name of the network view in which the host record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"view": {
 				Type:        schema.TypeString,
-				Description: "DNS view",
+				Description: "The name of the DNS view in which the record resides.",
 				Computed:    true,
 			},
 			"zone": {
 				Type:        schema.TypeString,
-				Description: "DNS zone",
+				Description: "The name of the zone in which the record resides.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"query_params": {
 				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
+				Description: "Additional query parameters.",
 				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -72,38 +72,38 @@ func dataSourceHostRecord() *schema.Resource {
 			},
 			"ip_v4_address": {
 				Type:        schema.TypeSet,
-				Description: "IPv4 addresses associated with host record",
+				Description: "IPv4 addresses associated with host record.",
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref": {
 							Type:        schema.TypeString,
-							Description: "Reference id of address object",
+							Description: "Reference id of address object.",
 							Computed:    true,
 						},
 						"ip_address": {
 							Type:        schema.TypeString,
-							Description: "IP address",
+							Description: "IP address.",
 							Computed:    true,
 						},
 						"hostname": {
 							Type:        schema.TypeString,
-							Description: "Hostname associated with IP address",
+							Description: "Hostname associated with IP address.",
 							Computed:    true,
 						},
 						"network": {
 							Type:        schema.TypeString,
-							Description: "Network associated with IP address",
+							Description: "Network associated with IP address.",
 							Computed:    true,
 						},
 						"mac_address": {
 							Type:        schema.TypeString,
-							Description: "MAC address associated with IP address",
+							Description: "MAC address associated with IP address.",
 							Computed:    true,
 						},
 						"configure_for_dhcp": {
 							Type:        schema.TypeBool,
-							Description: "Configure IP for DHCP",
+							Description: "Set this to True to enable the DHCP configuration for this host address.",
 							Computed:    true,
 						},
 					},
@@ -111,7 +111,7 @@ func dataSourceHostRecord() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of host record",
+				Description: "Extensible attributes of host record (Values are JSON encoded).",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,

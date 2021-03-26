@@ -21,7 +21,7 @@ func dataSourceNetwork() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:          schema.TypeString,
-				Description:   "Reference id of network object",
+				Description:   "Reference id of network object.",
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"cidr"},
@@ -29,7 +29,7 @@ func dataSourceNetwork() *schema.Resource {
 			},
 			"cidr": {
 				Type:          schema.TypeString,
-				Description:   "CIDR of network",
+				Description:   "The network address in IPv4 Address/CIDR format.",
 				Optional:      true,
 				Computed:      true,
 				ConflictsWith: []string{"ref"},
@@ -37,12 +37,12 @@ func dataSourceNetwork() *schema.Resource {
 			},
 			"comment": {
 				Type:        schema.TypeString,
-				Description: "Comment string",
+				Description: "Comment for the record; maximum 256 characters.",
 				Computed:    true,
 			},
 			"disable_dhcp": {
 				Type:        schema.TypeBool,
-				Description: "Disable for DHCP",
+				Description: "Disable for DHCP.",
 				Computed:    true,
 			},
 			"network_view": {
@@ -61,28 +61,28 @@ func dataSourceNetwork() *schema.Resource {
 			},
 			"member": {
 				Type:        schema.TypeSet,
-				Description: "Grid members associated with network",
+				Description: "Grid members associated with network.",
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"struct": {
 							Type:        schema.TypeString,
-							Description: "Struct type of member",
+							Description: "Struct type of member.",
 							Computed:    true,
 						},
 						"ip_v4_address": {
 							Type:        schema.TypeString,
-							Description: "IPv4 address",
+							Description: "IPv4 address.",
 							Computed:    true,
 						},
 						"ip_v6_address": {
 							Type:        schema.TypeString,
-							Description: "IPv6 address",
+							Description: "IPv6 address.",
 							Computed:    true,
 						},
 						"hostname": {
 							Type:        schema.TypeString,
-							Description: "Hostname of member",
+							Description: "Hostname of member.",
 							Computed:    true,
 						},
 					},
@@ -90,33 +90,33 @@ func dataSourceNetwork() *schema.Resource {
 			},
 			"option": {
 				Type:        schema.TypeSet,
-				Description: "DHCP options associated with network",
+				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Name of DHCP option",
+							Description: "Name of the DHCP option.",
 							Computed:    true,
 						},
 						"code": {
 							Type:        schema.TypeInt,
-							Description: "Option numberic id",
+							Description: "The code of the DHCP option.",
 							Computed:    true,
 						},
 						"use_option": {
 							Type:        schema.TypeBool,
-							Description: "Use this dhcp option",
+							Description: "Only applies to special options that are displayed separately from other options and have a use flag.",
 							Computed:    true,
 						},
 						"value": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "Value of the DHCP option.",
 							Computed:    true,
 						},
 						"vendor_class": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "The name of the space this DHCP option is associated to.",
 							Computed:    true,
 						},
 					},
@@ -124,7 +124,7 @@ func dataSourceNetwork() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of network",
+				Description: "Extensible attributes of network (Values are JSON encoded).",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,

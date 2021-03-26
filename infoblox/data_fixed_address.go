@@ -21,13 +21,28 @@ func dataSourceFixedAddress() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceFixedAddressRead,
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of host fixed address object.",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataFixedAddressRequiredSearchFields,
-				ConflictsWith: remove(dataFixedAddressRequiredSearchFields, "ref", true),
+			"cidr": {
+				Type:        schema.TypeString,
+				Description: "The network to which this fixed address belongs, in IPv4 Address/CIDR format.",
+				Computed:    true,
+			},
+			"comment": {
+				Type:        schema.TypeString,
+				Description: "Comment for the fixed address; maximum 256 characters.",
+				Computed:    true,
+			},
+			"disable": {
+				Type:        schema.TypeBool,
+				Description: "Determines whether a fixed address is disabled or not. When this is set to False, the fixed address is enabled.",
+				Computed:    true,
+			},
+			"extensible_attributes": {
+				Type:        schema.TypeMap,
+				Description: "Extensible attributes of fixed address (Values are JSON encoded).",
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"hostname": {
 				Type:          schema.TypeString,
@@ -37,19 +52,6 @@ func dataSourceFixedAddress() *schema.Resource {
 				AtLeastOneOf:  dataFixedAddressRequiredSearchFields,
 				ConflictsWith: remove(dataFixedAddressRequiredSearchFields, "hostname", true),
 			},
-			"cidr": {
-				Type:        schema.TypeString,
-				Description: "The network to which this fixed address belongs, in IPv4 Address/CIDR format.",
-				Computed:    true,
-			},
-			"query_params": {
-				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
-				Optional:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
 			"ip_address": {
 				Type:             schema.TypeString,
 				Description:      "The IPv4 Address of the fixed address.",
@@ -58,17 +60,6 @@ func dataSourceFixedAddress() *schema.Resource {
 				AtLeastOneOf:     dataFixedAddressRequiredSearchFields,
 				ConflictsWith:    remove(dataFixedAddressRequiredSearchFields, "ip_address", true),
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
-			},
-			"comment": {
-				Type:        schema.TypeString,
-				Description: "Comment for the fixed address; maximum 256 characters.",
-				Computed:    true,
-			},
-			"network_view": {
-				Type:        schema.TypeString,
-				Description: "The name of the network view in which this fixed address resides.",
-				Optional:    true,
-				Computed:    true,
 			},
 			"mac": {
 				Type:        schema.TypeString,
@@ -80,9 +71,10 @@ func dataSourceFixedAddress() *schema.Resource {
 				Description: "The match_client value for this fixed address.",
 				Computed:    true,
 			},
-			"disable": {
-				Type:        schema.TypeBool,
-				Description: "Determines whether a fixed address is disabled or not. When this is set to False, the fixed address is enabled.",
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "The name of the network view in which this fixed address resides.",
+				Optional:    true,
 				Computed:    true,
 			},
 			"option": {
@@ -119,13 +111,21 @@ func dataSourceFixedAddress() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
+			"query_params": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of fixed address (Values are JSON encoded).",
-				Computed:    true,
+				Description: "Additional query parameters",
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"ref": {
+				Type:          schema.TypeString,
+				Description:   "Reference id of fixed address object.",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  dataFixedAddressRequiredSearchFields,
+				ConflictsWith: remove(dataFixedAddressRequiredSearchFields, "ref", true),
 			},
 		},
 	}

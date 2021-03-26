@@ -40,38 +40,39 @@ func resourceRange() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"ref": {
 				Type:        schema.TypeString,
-				Description: "Reference id of range object",
-				Computed:    true,
-			},
-			"comment": {
-				Type:        schema.TypeString,
-				Description: "Comment string",
-				Optional:    true,
+				Description: "Reference id of range object.",
 				Computed:    true,
 			},
 			"cidr": {
 				Type:             schema.TypeString,
-				Description:      "Network for range in CIDR notation",
+				Description:      "The network to which this range belongs, in IPv4 Address/CIDR format.",
 				Required:         true,
 				ForceNew:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
+			"comment": {
+				Type:             schema.TypeString,
+				Description:      "Comment for the range; maximum 256 characters.",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
+			},
 			"disable_dhcp": {
 				Type:        schema.TypeBool,
-				Description: "Disable for DHCP",
+				Description: "Disable for DHCP.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"network_view": {
 				Type:        schema.TypeString,
-				Description: "Network view",
+				Description: "The name of the network view in which this range resides.",
 				ForceNew:    true,
 				Optional:    true,
 				Computed:    true,
 			},
 			"start_address": {
 				Type:             schema.TypeString,
-				Description:      "Starting IP address",
+				Description:      "The IPv4 Address starting address of the range.",
 				Optional:         true,
 				Computed:         true,
 				ConflictsWith:    []string{"sequential_count"},
@@ -81,7 +82,7 @@ func resourceRange() *schema.Resource {
 			},
 			"end_address": {
 				Type:             schema.TypeString,
-				Description:      "Starting IP address",
+				Description:      "The IPv4 Address end address of the range.",
 				Optional:         true,
 				Computed:         true,
 				RequiredWith:     []string{"start_address"},
@@ -103,25 +104,25 @@ func resourceRange() *schema.Resource {
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
-				Description:  "Ref for grid needed for restarting services",
+				Description:  "Ref for grid needed for restarting services.",
 				Optional:     true,
 				RequiredWith: []string{"restart_if_needed"},
 			},
 			"restart_if_needed": {
 				Type:        schema.TypeBool,
-				Description: "Restart dhcp services if needed",
+				Description: "Restart dhcp services if needed.",
 				Optional:    true,
 			},
 			"member": {
 				Type:        schema.TypeList,
-				Description: "Grid member associated with range",
+				Description: "Grid member associated with range.",
 				Required:    true,
 				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"struct": {
 							Type:             schema.TypeString,
-							Description:      "Struct type of member",
+							Description:      "Struct type of member.",
 							Optional:         true,
 							Default:          "dhcpmember",
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"dhcpmember", "msdhcpserver"}, true)),
@@ -131,7 +132,7 @@ func resourceRange() *schema.Resource {
 						},
 						"ip_v4_address": {
 							Type:             schema.TypeString,
-							Description:      "IPv4 address",
+							Description:      "IPv4 address.",
 							Optional:         true,
 							Computed:         true,
 							ConflictsWith:    []string{"member.0.ip_v6_address"},
@@ -139,7 +140,7 @@ func resourceRange() *schema.Resource {
 						},
 						"ip_v6_address": {
 							Type:             schema.TypeString,
-							Description:      "IPv6 address",
+							Description:      "IPv6 address.",
 							Optional:         true,
 							Computed:         true,
 							ConflictsWith:    []string{"member.0.ip_v4_address"},
@@ -147,7 +148,7 @@ func resourceRange() *schema.Resource {
 						},
 						"hostname": {
 							Type:        schema.TypeString,
-							Description: "Hostname of member",
+							Description: "Hostname of member.",
 							Required:    true,
 						},
 					},
@@ -155,35 +156,36 @@ func resourceRange() *schema.Resource {
 			},
 			"option": {
 				Type:        schema.TypeSet,
-				Description: "DHCP options associated with network",
+				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
 				Optional:    true,
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:        schema.TypeString,
-							Description: "Name of DHCP option",
+							Description: "Name of the DHCP option.",
 							Required:    true,
 						},
 						"code": {
 							Type:        schema.TypeInt,
-							Description: "Code of the DHCP option",
+							Description: "The code of the DHCP option.",
+							Optional:    true,
 							Computed:    true,
 						},
 						"use_option": {
 							Type:        schema.TypeBool,
-							Description: "Use this dhcp option",
+							Description: "Only applies to special options that are displayed separately from other options and have a use flag.",
 							Optional:    true,
 							Default:     true,
 						},
 						"value": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "Value of the DHCP option.",
 							Required:    true,
 						},
 						"vendor_class": {
 							Type:        schema.TypeString,
-							Description: "Value of option",
+							Description: "The name of the space this DHCP option is associated to.",
 							Optional:    true,
 							Default:     "DHCP",
 						},
@@ -192,7 +194,7 @@ func resourceRange() *schema.Resource {
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of range",
+				Description:      "Extensible attributes of range object (Values are JSON encoded).",
 				Optional:         true,
 				Computed:         true,
 				ValidateDiagFunc: validateEa,

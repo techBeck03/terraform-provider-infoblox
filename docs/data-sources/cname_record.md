@@ -27,16 +27,16 @@ data "infoblox_cname_record" "cname_record" {
 
 The following attributes are exported.
 
-- `ref` -  (MutuallyExclusiveGroup*/Computed, String) reference string.
 - `alias` -  (MutuallyExclusiveGroup*/Computed, String) The name for a CNAME record in FQDN format.
 - `canonical` - (Computed, String) Canonical name in FQDN format.
-- `dns_name` -  (Computed, String) The name for the CNAME record in punycode format.
-- `dns_canonical` -  (Computed,String) Canonical name in punycode format.
 - `comment` - (Computed, String) Comment for the record; maximum 256 characters.
 - `disable` - (Computed, Bool) Determines if the record is disabled or not. False means that the record is enabled.
-- `view` - (Optional/Computed, String) The name of the DNS view in which the record resides.
-- `zone` - (Optional/Computed, String) TThe name of the zone in which the record resides.
-- `query_params` - (Optional, Map) Additional query parameters used for cname record query (see infoblox documentation for full list)
+- `dns_name` -  (Computed, String) The name for the CNAME record in punycode format.
+- `dns_canonical` -  (Computed,String) Canonical name in punycode format.
 - `extensible_attributes` - (Computed, Map) Extensible attributes of cname record (Values are JSON encoded).
+- `query_params` - (Optional, Map) Additional query parameters used for cname record query (see infoblox documentation for full list)
+- `ref` -  (MutuallyExclusiveGroup*/Computed, String) reference string.
+- `view` - (Optional/Computed, String) The name of the DNS view in which the record resides.
+- `zone` - (Optional/Computed, String) The name of the zone in which the record resides.
 
 **_MutuallyExclusiveGroup_**: One and only one of the attritbutes in this group **MUST** be provided as a primary search key

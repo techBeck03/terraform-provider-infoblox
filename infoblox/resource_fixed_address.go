@@ -2,6 +2,7 @@ package infoblox
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -13,8 +14,8 @@ import (
 
 var (
 	fixedAddressRequiredIPFields = []string{
-		"network",
-		"ip_v4_address",
+		"cidr",
+		"ip_address",
 		"range_function_string",
 	}
 )
@@ -32,29 +33,13 @@ func resourceFixedAddress() *schema.Resource {
 			makeEACustomDiff("extensible_attributes"),
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of host fixed address object.",
-				Computed:    true,
-			},
-			"hostname": {
-				Type:        schema.TypeString,
-				Description: "This field contains the name of this fixed address.",
-				Optional:    true,
-				Computed:    true,
-			},
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "The network to which this fixed address belongs, in IPv4 Address/CIDR format.",
 				Optional:         true,
+				ForceNew:         true,
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
-			},
-			"ip_address": {
-				Type:             schema.TypeString,
-				Description:      "The IPv4 Address of the fixed address.",
-				Required:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
 			"comment": {
 				Type:             schema.TypeString,
@@ -63,11 +48,43 @@ func resourceFixedAddress() *schema.Resource {
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
 			},
-			"network_view": {
+			"disable": {
+				Type:        schema.TypeBool,
+				Description: "Determines whether a fixed address is disabled or not. When this is set to False, the fixed address is enabled.",
+				Optional:    true,
+				Default:     false,
+			},
+			"extensible_attributes": {
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes of fixed address (Values are JSON encoded).",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"grid_ref": {
+				Type:         schema.TypeString,
+				Description:  "Ref for grid needed for restarting services.",
+				Optional:     true,
+				RequiredWith: []string{"restart_if_needed"},
+			},
+			"hostname": {
 				Type:        schema.TypeString,
-				Description: "The name of the network view in which this fixed address resides.",
+				Description: "This field contains the name of this fixed address.",
 				Optional:    true,
 				Computed:    true,
+			},
+			"ip_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv4 Address of the fixed address.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+				Optional:         true,
+				Computed:         true,
+				AtLeastOneOf:     fixedAddressRequiredIPFields,
+				ConflictsWith:    []string{"range_function_string"},
 			},
 			"mac": {
 				Type:        schema.TypeString,
@@ -82,26 +99,9 @@ func resourceFixedAddress() *schema.Resource {
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MAC_ADDRESS", "CLIENT_ID", "RESERVED", "CIRCUIT_ID", "REMOTE_ID"}, false)),
 			},
-			"disable": {
-				Type:        schema.TypeBool,
-				Description: "Determines whether a fixed address is disabled or not. When this is set to False, the fixed address is enabled.",
-				Optional:    true,
-				Default:     false,
-			},
-			"grid_ref": {
-				Type:         schema.TypeString,
-				Description:  "Ref for grid needed for restarting services.",
-				Optional:     true,
-				RequiredWith: []string{"restart_if_needed"},
-			},
-			"restart_if_needed": {
-				Type:        schema.TypeBool,
-				Description: "Restart dhcp services if needed",
-				Optional:    true,
-			},
 			"member": {
 				Type:        schema.TypeList,
-				Description: "Grid member associated with range.",
+				Description: "Grid member associated with fixed address.",
 				Required:    true,
 				MaxItems:    1,
 				Elem: &schema.Resource{
@@ -140,6 +140,12 @@ func resourceFixedAddress() *schema.Resource {
 					},
 				},
 			},
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "The name of the network view in which this fixed address resides.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"option": {
 				Type:        schema.TypeSet,
 				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
@@ -155,6 +161,7 @@ func resourceFixedAddress() *schema.Resource {
 						"code": {
 							Type:        schema.TypeInt,
 							Description: "The code of the DHCP option.",
+							Optional:    true,
 							Computed:    true,
 						},
 						"use_option": {
@@ -177,16 +184,23 @@ func resourceFixedAddress() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
-				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of fixed address (Values are JSON encoded).",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validateEa,
-				DiffSuppressFunc: eaSuppressDiff,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			"range_function_string": {
+				Type:          schema.TypeString,
+				Description:   "Range start and end string for next_available_ip function calls.",
+				Optional:      true,
+				ForceNew:      true,
+				AtLeastOneOf:  fixedAddressRequiredIPFields,
+				ConflictsWith: []string{"ip_address"},
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id of fixed address object.",
+				Computed:    true,
+			},
+			"restart_if_needed": {
+				Type:        schema.TypeBool,
+				Description: "Restart dhcp services if needed.",
+				Optional:    true,
 			},
 		},
 	}
@@ -239,6 +253,14 @@ func convertResourceDataToFixedAddress(client *infoblox.Client, d *schema.Resour
 	fixedAddress.NetworkView = d.Get("network_view").(string)
 	fixedAddress.Mac = d.Get("mac").(string)
 	fixedAddress.MatchClient = d.Get("match_client").(string)
+
+	if ipAddress, ok := d.GetOk("ip_address"); ok {
+		fixedAddress.IPAddress = ipAddress.(string)
+	} else if cidr, ok := d.GetOk("cidr"); ok {
+		fixedAddress.IPAddress = fmt.Sprintf("func:nextavailableip:%s", cidr.(string))
+	} else if rangeFunctionString, ok := d.GetOk("range_function_string"); ok {
+		fixedAddress.IPAddress = fmt.Sprintf("func:nextavailableip:%s", rangeFunctionString.(string))
+	}
 
 	optionList := d.Get("option").(*schema.Set).List()
 	fixedAddress.Options = []infoblox.Option{}

@@ -22,16 +22,23 @@ provider "guacamole" {
   username = "guacadmin"
   password = "guacadmin"
   disable_tls_verification = true
+  orchestrator_extensible_attributes = {
+    Orchestrator = jsonencode({
+      value = "Terraform",
+      type  = "ENUM"
+    })
+  }
 }
 ```
 
 ## Schema
 
-- **hostname** (String) Hostname or IP address of Grid master (defaults to environment variable `INFOBLOX_HOSTNAME`)
-- **username** (String) Username to authenticate to infoblox (defaults to environment variable `INFOBLOX_USERNAME`)
-- **password** (String) Password to authenticate to infoblox (defaults to environment variable `INFOBLOX_PASSWORD`)
-- **port** (String) Port on which to communicate with infoblox (defaults to environment variable `INFOBLOX_PORT` or `443` no value is set)
-- **disable_tls_verification** (Bool, Optional) Whether to disable tls verification for ssl connections (defaults to environment variable `INFOBLOX_DISABLE_TLS` or `false` if no value is set)
-- **wapi_version** (String, Optional) WAPI version (defaults to environment variable `INFOBLOX_VERSION` or `2.11` if no value is set)
+- **hostname** (Required, String) Hostname or IP address of Grid master (defaults to environment variable `INFOBLOX_HOSTNAME`).
+- **username** (Required, String) Username to authenticate to infoblox (defaults to environment variable `INFOBLOX_USERNAME`).
+- **password** (Required, String) Password to authenticate to infoblox (defaults to environment variable `INFOBLOX_PASSWORD`).
+- **port** (Required, String) Port on which to communicate with infoblox (defaults to environment variable `INFOBLOX_PORT` or `443` no value is set).
+- **disable_tls_verification** (Optional, Bool) Whether to disable tls verification for ssl connections (defaults to environment variable `INFOBLOX_DISABLE_TLS` or `false` if no value is set).
+- **wapi_version** (Optional, String) WAPI version (defaults to environment variable `INFOBLOX_VERSION` or `2.11` if no value is set).
+- **orchestrator_extensible_attributes** (Optional, Map) Extensible attributes applied to all objects configured by provider. 
 
 ```

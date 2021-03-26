@@ -12,8 +12,30 @@ const (
 	memberReturnFields = "config_addr_type,host_name,platform,service_type_configuration"
 )
 
-// GetGrids gets grid member list
-func (c *Client) GetGrids(queryParams map[string]string) ([]Grid, error) {
+// GetGridByRef gets grid by ref
+func (c *Client) GetGridByRef(ref string) (Grid, error) {
+	var ret Grid
+
+	queryParams := map[string]string{
+		"_return_fields": gridReturnFields,
+	}
+
+	queryParamString := c.BuildQuery(queryParams)
+	request, err := c.CreateJSONRequest(http.MethodGet, fmt.Sprintf("%s?%s", ref, queryParamString), nil)
+	if err != nil {
+		return ret, err
+	}
+
+	err = c.Call(request, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+// GetGridsByQuery gets grid list
+func (c *Client) GetGridsByQuery(queryParams map[string]string) ([]Grid, error) {
 	var ret []Grid
 	if queryParams == nil {
 		queryParams = map[string]string{

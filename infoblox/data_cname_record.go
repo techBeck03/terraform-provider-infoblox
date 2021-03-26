@@ -20,14 +20,6 @@ func dataSourceCNameRecord() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceCNameRecordRead,
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of cname record object.",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataCNameRecordRequiredSearchFields,
-				ConflictsWith: remove(dataCNameRecordRequiredSearchFields, "ref", true),
-			},
 			"alias": {
 				Type:          schema.TypeString,
 				Description:   "The name for a CNAME record in FQDN format.",
@@ -44,16 +36,6 @@ func dataSourceCNameRecord() *schema.Resource {
 				AtLeastOneOf:  dataCNameRecordRequiredSearchFields,
 				ConflictsWith: remove(dataCNameRecordRequiredSearchFields, "canonical", true),
 			},
-			"dns_name": {
-				Type:        schema.TypeString,
-				Description: "The name for the CNAME record in punycode format.",
-				Computed:    true,
-			},
-			"dns_canonical": {
-				Type:        schema.TypeString,
-				Description: "Canonical name in punycode format.",
-				Computed:    true,
-			},
 			"comment": {
 				Type:        schema.TypeString,
 				Description: "Comment for the record; maximum 256 characters.",
@@ -63,6 +45,32 @@ func dataSourceCNameRecord() *schema.Resource {
 				Type:        schema.TypeBool,
 				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
 				Computed:    true,
+			},
+			"dns_canonical": {
+				Type:        schema.TypeString,
+				Description: "Canonical name in punycode format.",
+				Computed:    true,
+			},
+			"dns_name": {
+				Type:        schema.TypeString,
+				Description: "The name for the CNAME record in punycode format.",
+				Computed:    true,
+			},
+			"extensible_attributes": {
+				Type:        schema.TypeMap,
+				Description: "Extensible attributes of cname record (Values are JSON encoded).",
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"ref": {
+				Type:          schema.TypeString,
+				Description:   "Reference id of cname record object.",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  dataCNameRecordRequiredSearchFields,
+				ConflictsWith: remove(dataCNameRecordRequiredSearchFields, "ref", true),
 			},
 			"view": {
 				Type:        schema.TypeString,
@@ -80,14 +88,6 @@ func dataSourceCNameRecord() *schema.Resource {
 				Type:        schema.TypeMap,
 				Description: "Additional query parameters",
 				Optional:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"extensible_attributes": {
-				Type:        schema.TypeMap,
-				Description: "Extensible attributes of cname record (Values are JSON encoded).",
-				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

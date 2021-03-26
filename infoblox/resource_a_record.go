@@ -23,27 +23,6 @@ func resourceARecord() *schema.Resource {
 			makeEACustomDiff("extensible_attributes"),
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of A record object.",
-				Computed:    true,
-			},
-			"hostname": {
-				Type:        schema.TypeString,
-				Description: "Hostname of A record.",
-				Required:    true,
-			},
-			"dns_name": {
-				Type:        schema.TypeString,
-				Description: "The name for an A record in punycode format.",
-				Computed:    true,
-			},
-			"ip_address": {
-				Type:             schema.TypeString,
-				Description:      "The IPv4 Address of the record.",
-				Required:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
-			},
 			"comment": {
 				Type:             schema.TypeString,
 				Description:      "Comment for the record; maximum 256 characters.",
@@ -57,16 +36,9 @@ func resourceARecord() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
-			"view": {
+			"dns_name": {
 				Type:        schema.TypeString,
-				Description: "The name of the DNS view in which the record resides.",
-				Optional:    true,
-				ForceNew:    true,
-				Computed:    true,
-			},
-			"zone": {
-				Type:        schema.TypeString,
-				Description: "The name of the zone in which the record resides.",
+				Description: "The name for an A record in punycode format.",
 				Computed:    true,
 			},
 			"extensible_attributes": {
@@ -79,6 +51,34 @@ func resourceARecord() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"hostname": {
+				Type:        schema.TypeString,
+				Description: "Hostname of A record.",
+				Required:    true,
+			},
+			"ip_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv4 Address of the record.",
+				Required:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id of A record object.",
+				Computed:    true,
+			},
+			"view": {
+				Type:        schema.TypeString,
+				Description: "The name of the DNS view in which the record resides.",
+				Optional:    true,
+				ForceNew:    true,
+				Computed:    true,
+			},
+			"zone": {
+				Type:        schema.TypeString,
+				Description: "The name of the zone in which the record resides.",
+				Computed:    true,
 			},
 		},
 	}

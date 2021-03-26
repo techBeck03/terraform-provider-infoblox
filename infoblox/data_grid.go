@@ -8,28 +8,41 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
+var (
+	dataGridRequiredSearchFields = []string{
+		"name",
+		"ref",
+	}
+)
+
 func dataSourceGrid() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceGridRead,
 		Schema: map[string]*schema.Schema{
 			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of network object",
-				Computed:    true,
+				Type:          schema.TypeString,
+				Description:   "Reference id of grid object.",
+				Computed:      true,
+				Optional:      true,
+				AtLeastOneOf:  dataGridRequiredSearchFields,
+				ConflictsWith: remove(dataGridRequiredSearchFields, "ref", true),
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Description: "Name of grid",
-				Computed:    true,
+				Type:          schema.TypeString,
+				Description:   "Name of grid.",
+				Computed:      true,
+				Optional:      true,
+				AtLeastOneOf:  dataGridRequiredSearchFields,
+				ConflictsWith: remove(dataGridRequiredSearchFields, "name", true),
 			},
 			"service_status": {
 				Type:        schema.TypeString,
-				Description: "Service status of grid",
+				Description: "Service status of grid.",
 				Computed:    true,
 			},
 			"dns_resolvers": {
 				Type:        schema.TypeList,
-				Description: "DNS resolvers",
+				Description: "List of DNS resolvers.",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -37,16 +50,17 @@ func dataSourceGrid() *schema.Resource {
 			},
 			"dns_search_domains": {
 				Type:        schema.TypeList,
-				Description: "Search domains",
+				Description: "List of DNS search domains.",
 				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"query_params": {
-				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
-				Optional:    true,
+				Type:          schema.TypeMap,
+				Description:   "Additional query parameters.",
+				Optional:      true,
+				ConflictsWith: []string{"ref"},
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -60,6 +74,7 @@ func dataSourceGridRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+	var grid infoblox.Grid
 
 	queryParams := d.Get("query_params").(map[string]interface{})
 	resolvedQueryParams := make(map[string]string)
@@ -68,22 +83,31 @@ func dataSourceGridRead(ctx context.Context, d *schema.ResourceData, m interface
 		resolvedQueryParams[k] = v.(string)
 	}
 
-	grids, err := client.GetGrids(resolvedQueryParams)
+	if ref, ok := d.GetOk("ref"); ok {
+		g, err := client.GetGridByRef(ref.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		grid = g
+	} else if name, ok := d.GetOk("name"); ok {
+		resolvedQueryParams["name"] = name.(string)
+		grids, err := client.GetGridsByQuery(resolvedQueryParams)
 
-	if err != nil {
-		return diag.FromErr(err)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if len(grids) > 1 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Multiple values returned",
+				Detail:   "Grid query returned multiple values when one was expected",
+			})
+			return diags
+		}
+
+		grid = grids[0]
 	}
-
-	if len(grids) > 1 {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Multiple values returned",
-			Detail:   "Grid query returned multiple values when one was expected",
-		})
-		return diags
-	}
-
-	grid := grids[0]
 
 	d.Set("ref", grid.Ref)
 	d.Set("name", grid.Name)
