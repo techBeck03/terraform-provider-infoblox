@@ -28,22 +28,35 @@ func resourceNetwork() *schema.Resource {
 			optionCustomDiff,
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of network object.",
-				Computed:    true,
-			},
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "The network address in IPv4 Address/CIDR format.",
 				Required:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
-			"gateway_ip": {
+			"comment": {
 				Type:             schema.TypeString,
-				Description:      "Default gateway IPv4 address.",
+				Description:      "Comment for the record; maximum 256 characters.",
 				Optional:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPAddress),
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
+			},
+			"disable_dhcp": {
+				Type:        schema.TypeBool,
+				Description: "Disable for DHCP.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"extensible_attributes": {
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes of network (Values are JSON encoded).",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"gateway_comment": {
 				Type:             schema.TypeString,
@@ -65,35 +78,17 @@ func resourceNetwork() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"comment": {
+			"gateway_ip": {
 				Type:             schema.TypeString,
-				Description:      "Comment for the record; maximum 256 characters.",
+				Description:      "Default gateway IPv4 address.",
 				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
-			},
-			"disable_dhcp": {
-				Type:        schema.TypeBool,
-				Description: "Disable for DHCP.",
-				Optional:    true,
-				Computed:    true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPAddress),
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
 				Description:  "Ref for grid needed for restarting services.",
 				Optional:     true,
 				RequiredWith: []string{"restart_if_needed"},
-			},
-			"restart_if_needed": {
-				Type:        schema.TypeBool,
-				Description: "Restart dhcp services if needed.",
-				Optional:    true,
-			},
-			"network_view": {
-				Type:        schema.TypeString,
-				Description: "The name of the network view in which this network resides.",
-				Optional:    true,
-				Computed:    true,
 			},
 			"member": {
 				Type:        schema.TypeList,
@@ -136,6 +131,12 @@ func resourceNetwork() *schema.Resource {
 					},
 				},
 			},
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "The name of the network view in which this network resides.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"option": {
 				Type:        schema.TypeSet,
 				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
@@ -174,16 +175,15 @@ func resourceNetwork() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
-				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of network (Values are JSON encoded).",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validateEa,
-				DiffSuppressFunc: eaSuppressDiff,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			"ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id of network object.",
+				Computed:    true,
+			},
+			"restart_if_needed": {
+				Type:        schema.TypeBool,
+				Description: "Restart dhcp services if needed.",
+				Optional:    true,
 			},
 		},
 	}

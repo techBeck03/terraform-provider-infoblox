@@ -38,11 +38,6 @@ func resourceRange() *schema.Resource {
 			makeGTIPCheck("start_address", "end_address"),
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of range object.",
-				Computed:    true,
-			},
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "The network to which this range belongs, in IPv4 Address/CIDR format.",
@@ -63,23 +58,6 @@ func resourceRange() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
-			"network_view": {
-				Type:        schema.TypeString,
-				Description: "The name of the network view in which this range resides.",
-				ForceNew:    true,
-				Optional:    true,
-				Computed:    true,
-			},
-			"start_address": {
-				Type:             schema.TypeString,
-				Description:      "The IPv4 Address starting address of the range.",
-				Optional:         true,
-				Computed:         true,
-				ConflictsWith:    []string{"sequential_count"},
-				RequiredWith:     []string{"end_address"},
-				AtLeastOneOf:     rangeRequiredFields,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
-			},
 			"end_address": {
 				Type:             schema.TypeString,
 				Description:      "The IPv4 Address end address of the range.",
@@ -89,29 +67,22 @@ func resourceRange() *schema.Resource {
 				ConflictsWith:    []string{"sequential_count"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
-			"sequential_count": {
-				Type:             schema.TypeInt,
-				Description:      "Sequential count of addresses",
+			"extensible_attributes": {
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes of range object (Values are JSON encoded).",
 				Optional:         true,
-				ConflictsWith:    []string{"start_address", "end_address"},
-				AtLeastOneOf:     rangeRequiredFields,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
-			},
-			"range_function_string": {
-				Type:        schema.TypeString,
-				Description: "String representation of start and end addresses to be used with function calls",
-				Computed:    true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
 				Description:  "Ref for grid needed for restarting services.",
 				Optional:     true,
 				RequiredWith: []string{"restart_if_needed"},
-			},
-			"restart_if_needed": {
-				Type:        schema.TypeBool,
-				Description: "Restart dhcp services if needed.",
-				Optional:    true,
 			},
 			"member": {
 				Type:        schema.TypeList,
@@ -154,6 +125,13 @@ func resourceRange() *schema.Resource {
 					},
 				},
 			},
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "The name of the network view in which this range resides.",
+				ForceNew:    true,
+				Optional:    true,
+				Computed:    true,
+			},
 			"option": {
 				Type:        schema.TypeSet,
 				Description: "An array of DHCP option structs that lists the DHCP options associated with the object.",
@@ -192,16 +170,38 @@ func resourceRange() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
-				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of range object (Values are JSON encoded).",
+			"range_function_string": {
+				Type:        schema.TypeString,
+				Description: "String representation of start and end addresses to be used with function calls",
+				Computed:    true,
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id of range object.",
+				Computed:    true,
+			},
+			"restart_if_needed": {
+				Type:        schema.TypeBool,
+				Description: "Restart dhcp services if needed.",
+				Optional:    true,
+			},
+			"sequential_count": {
+				Type:             schema.TypeInt,
+				Description:      "Sequential count of addresses.",
+				Optional:         true,
+				ConflictsWith:    []string{"start_address", "end_address"},
+				AtLeastOneOf:     rangeRequiredFields,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+			},
+			"start_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv4 Address starting address of the range.",
 				Optional:         true,
 				Computed:         true,
-				ValidateDiagFunc: validateEa,
-				DiffSuppressFunc: eaSuppressDiff,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				ConflictsWith:    []string{"sequential_count"},
+				RequiredWith:     []string{"end_address"},
+				AtLeastOneOf:     rangeRequiredFields,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
 		},
 	}

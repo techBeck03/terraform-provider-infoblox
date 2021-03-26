@@ -19,14 +19,6 @@ func dataSourceNetwork() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceNetworkRead,
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of network object.",
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"cidr"},
-				AtLeastOneOf:  dataNetworkRequiredSearchFields,
-			},
 			"cidr": {
 				Type:          schema.TypeString,
 				Description:   "The network address in IPv4 Address/CIDR format.",
@@ -45,16 +37,10 @@ func dataSourceNetwork() *schema.Resource {
 				Description: "Disable for DHCP.",
 				Computed:    true,
 			},
-			"network_view": {
-				Type:        schema.TypeString,
-				Description: "Network view",
-				Optional:    true,
-				Computed:    true,
-			},
-			"query_params": {
+			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Additional query parameters",
-				Optional:    true,
+				Description: "Extensible attributes of network (Values are JSON encoded).",
+				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -87,6 +73,12 @@ func dataSourceNetwork() *schema.Resource {
 						},
 					},
 				},
+			},
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "Network view",
+				Optional:    true,
+				Computed:    true,
 			},
 			"option": {
 				Type:        schema.TypeSet,
@@ -122,13 +114,21 @@ func dataSourceNetwork() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
+			"query_params": {
 				Type:        schema.TypeMap,
-				Description: "Extensible attributes of network (Values are JSON encoded).",
-				Computed:    true,
+				Description: "Additional query parameters",
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"ref": {
+				Type:          schema.TypeString,
+				Description:   "Reference id of network object.",
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"cidr"},
+				AtLeastOneOf:  dataNetworkRequiredSearchFields,
 			},
 		},
 	}

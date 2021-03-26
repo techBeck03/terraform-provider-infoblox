@@ -19,22 +19,6 @@ func dataSourceHostRecord() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceHostRecordRead,
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of host record object.",
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"hostname"},
-				AtLeastOneOf:  dataHostRecordRequiredSearchFields,
-			},
-			"hostname": {
-				Type:          schema.TypeString,
-				Description:   "The host name in FQDN format.",
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"ref"},
-				AtLeastOneOf:  dataHostRecordRequiredSearchFields,
-			},
 			"comment": {
 				Type:        schema.TypeString,
 				Description: "Comment for the record; maximum 256 characters.",
@@ -45,30 +29,21 @@ func dataSourceHostRecord() *schema.Resource {
 				Description: "When false, the host does not have parent zone information.",
 				Computed:    true,
 			},
-			"network_view": {
-				Type:        schema.TypeString,
-				Description: "The name of the network view in which the host record resides.",
-				Optional:    true,
-				Computed:    true,
-			},
-			"view": {
-				Type:        schema.TypeString,
-				Description: "The name of the DNS view in which the record resides.",
-				Computed:    true,
-			},
-			"zone": {
-				Type:        schema.TypeString,
-				Description: "The name of the zone in which the record resides.",
-				Optional:    true,
-				Computed:    true,
-			},
-			"query_params": {
+			"extensible_attributes": {
 				Type:        schema.TypeMap,
-				Description: "Additional query parameters.",
-				Optional:    true,
+				Description: "Extensible attributes of host record (Values are JSON encoded).",
+				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"hostname": {
+				Type:          schema.TypeString,
+				Description:   "The host name in FQDN format.",
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"ref"},
+				AtLeastOneOf:  dataHostRecordRequiredSearchFields,
 			},
 			"ip_v4_address": {
 				Type:        schema.TypeSet,
@@ -109,13 +84,38 @@ func dataSourceHostRecord() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
-				Type:        schema.TypeMap,
-				Description: "Extensible attributes of host record (Values are JSON encoded).",
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "The name of the network view in which the host record resides.",
+				Optional:    true,
 				Computed:    true,
+			},
+			"query_params": {
+				Type:        schema.TypeMap,
+				Description: "Additional query parameters.",
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"ref": {
+				Type:          schema.TypeString,
+				Description:   "Reference id of host record object.",
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hostname"},
+				AtLeastOneOf:  dataHostRecordRequiredSearchFields,
+			},
+			"view": {
+				Type:        schema.TypeString,
+				Description: "The name of the DNS view in which the record resides.",
+				Computed:    true,
+			},
+			"zone": {
+				Type:        schema.TypeString,
+				Description: "The name of the zone in which the record resides.",
+				Optional:    true,
+				Computed:    true,
 			},
 		},
 	}

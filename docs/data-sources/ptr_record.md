@@ -35,7 +35,6 @@ The following attributes are exported.
 - `ip_v4_address` -  (MutuallyExclusiveGroup*/Computed, String) The IPv4 Address of the record.
 - `ip_v6_address` -  (MutuallyExclusiveGroup*/Computed, String) The IPv6 Address of the record.
 - `name` -  (MutuallyExclusiveGroup*/Computed, String) The name of the DNS PTR record in FQDN format.
-- `network_view` -  (Computed, String) The name of the network view in which this fixed address resides.
 - `pointer_domain_name` -  (MutuallyExclusiveGroup*/Computed, String) The domain name of the DNS PTR record in FQDN format.
 - `query_params` - (Optional, Map) Additional query parameters used for ptr record query (see infoblox documentation for full list)
 - `ref` -  (MutuallyExclusiveGroup*/Computed, String) Reference id of ptr record object.

@@ -113,7 +113,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
 }
 ```
 
-## Attributes Reference
+## Argument Reference
 
 The following attributes are exported.
 
@@ -141,7 +141,7 @@ The following attributes are exported.
 - `range_function_string` -  (AtLeastOneOfGroup*, String) Range start and end string for next_available_ip function calls.
 - `restart_if_needed` -  (Optional, Bool) Restart dhcp services if needed.
 
-**_AtLeastOneOfGroup_**: At least one of the attritbutes in this group **MUST** be provided to determine the IP address
+**_AtLeastOneOfGroup_**: At least one of the attritbutes in this group **MUST** be provided to determine the IP address.
 
 ## Attributes Reference
 

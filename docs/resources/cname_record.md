@@ -29,7 +29,7 @@ resource "infoblox_cname_record" "record" {
 }
 ```
 
-## Attributes Reference
+## Argument Reference
 
 The following attributes are exported.
 

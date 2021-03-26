@@ -32,17 +32,6 @@ func resourceHostRecord() *schema.Resource {
 			makeEACustomDiff("extensible_attributes"),
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of host record object.",
-				Computed:    true,
-			},
-			"hostname": {
-				Type:        schema.TypeString,
-				Description: "The host name in FQDN format.",
-				Optional:    true,
-				Computed:    true,
-			},
 			"comment": {
 				Type:             schema.TypeString,
 				Description:      "Comment for the record; maximum 256 characters.",
@@ -50,46 +39,27 @@ func resourceHostRecord() *schema.Resource {
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
 			},
-			"network": {
-				Type:             schema.TypeString,
-				Description:      "Network for host record in CIDR notation (next_available_ip will be retrieved from this network).",
-				Optional:         true,
-				ForceNew:         true,
-				ConflictsWith:    []string{"ip_v4_address", "range_function_string"},
-				AtLeastOneOf:     hostRecordRequiredIPFields,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
-			},
-			"range_function_string": {
-				Type:          schema.TypeString,
-				Description:   "Range start and end string for next_available_ip function calls.",
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"ip_v4_address", "network"},
-				AtLeastOneOf:  hostRecordRequiredIPFields,
-			},
 			"enable_dns": {
 				Type:        schema.TypeBool,
 				Description: "When false, the host does not have parent zone information.",
 				Optional:    true,
 				Computed:    true,
 			},
-			"network_view": {
-				Type:        schema.TypeString,
-				Description: "The name of the network view in which the host record resides.",
-				ForceNew:    true,
-				Optional:    true,
-				Computed:    true,
+			"extensible_attributes": {
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes of host record (Values are JSON encoded).",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
-			"view": {
+			"hostname": {
 				Type:        schema.TypeString,
-				Description: "The name of the DNS view in which the record resides.",
-				Optional:    true,
-				ForceNew:    true,
-				Computed:    true,
-			},
-			"zone": {
-				Type:        schema.TypeString,
-				Description: "The name of the zone in which the record resides.",
+				Description: "The host name in FQDN format.",
+				Required:    true,
 				Computed:    true,
 			},
 			"ip_v4_address": {
@@ -116,7 +86,6 @@ func resourceHostRecord() *schema.Resource {
 						"hostname": {
 							Type:        schema.TypeString,
 							Description: "Hostname associated with IP address.",
-							Optional:    true,
 							Computed:    true,
 						},
 						"network": {
@@ -140,16 +109,46 @@ func resourceHostRecord() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
-				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of host record (Values are JSON encoded).",
+			"network": {
+				Type:             schema.TypeString,
+				Description:      "Network for host record in CIDR notation (next_available_ip will be retrieved from this network).",
 				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validateEa,
-				DiffSuppressFunc: eaSuppressDiff,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				ForceNew:         true,
+				ConflictsWith:    []string{"ip_v4_address", "range_function_string"},
+				AtLeastOneOf:     hostRecordRequiredIPFields,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
+			},
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "The name of the network view in which the host record resides.",
+				ForceNew:    true,
+				Optional:    true,
+				Computed:    true,
+			},
+			"range_function_string": {
+				Type:          schema.TypeString,
+				Description:   "Range start and end string for next_available_ip function calls.",
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ip_v4_address", "network"},
+				AtLeastOneOf:  hostRecordRequiredIPFields,
+			},
+			"ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id of host record object.",
+				Computed:    true,
+			},
+			"view": {
+				Type:        schema.TypeString,
+				Description: "The name of the DNS view in which the record resides.",
+				Optional:    true,
+				ForceNew:    true,
+				Computed:    true,
+			},
+			"zone": {
+				Type:        schema.TypeString,
+				Description: "The name of the zone in which the record resides.",
+				Computed:    true,
 			},
 		},
 	}

@@ -68,25 +68,31 @@ Manages configuration details for a host record in infoblox
 ```
 
 
-## Attributes Reference
+## Argument Reference
 
 The following attributes are exported.
 
-- `comment` - (Computed, String) Comment for the fixed address; maximum 256 characters.
-- `enable_dns` - (Computed, Bool) When false, the host does not have parent zone information.
-- `extensible_attributes` - (Computed, Map) Extensible attributes of host record (Values are JSON encoded).
-- `hostname` -  (MutuallyExclusiveGroup*/Computed, String) The host name in FQDN format.
-- `ip_v4_address` - (Computed, Set of Objects) IPv4 addresses associated with host record.  Attributes for each set item:
+- `comment` - (Optional, String) Comment for the fixed address; maximum 256 characters.
+- `enable_dns` - (Optional, Bool) When false, the host does not have parent zone information.
+- `extensible_attributes` - (Optional, Map) Extensible attributes of host record (Values are JSON encoded).
+- `hostname` -  (Required, String) The host name in FQDN format.
+- `ip_v4_address` - (MutuallyExclusiveGroup*/Computed, Set of Objects) IPv4 addresses associated with host record.  Attributes for each set item:
   - `ref` - (Computed, String) Reference id of address object.
-  - `ip_address` - (Computed, String) IP address.
+  - `ip_address` - (Required, String) IP address.
   - `hostname` - (Computed, String) Hostname associated with IP address.
-  - `network` - (Computed, String) Network associated with IP address.
-  - `mac_address` - (Computed, String) MAC address associated with IP address.
-  - `configure_for_dhcp` - (Computed, Bool) Set this to True to enable the DHCP configuration for this host address.
-- `network_view` -  (Computed, String) The name of the network view in which this fixed address resides.
-- `query_params` - (Optional, Map) Additional query parameters used for host record query (see infoblox documentation for full list)
-- `ref` -  (MutuallyExclusiveGroup*/Computed, String) Reference id of host record object.
-- `view` - (Optional/Computed, String) The name of the DNS view in which the record resides.
-- `zone` - (Optional/Computed, String) The name of the zone in which the record resides.
+  - `network` - (Optional, String) Network associated with IP address.
+  - `mac_address` - (Optional, String) MAC address associated with IP address.
+  - `configure_for_dhcp` - (Optional, Bool) Set this to True to enable the DHCP configuration for this host address.
+- `network` - (AtLeastOneOfGroup*/Computed, String) The network to which this fixed address belongs, in IPv4 Address/CIDR format.
+- `network_view` -  (Optional, String) The name of the network view in which this fixed address resides.
+- `range_function_string` -  (AtLeastOneOfGroup*, String) Range start and end string for next_available_ip function calls.
+- `view` - (Optional, String) The name of the DNS view in which the record resides.
+- `zone` - (Computed, String) The name of the zone in which the record resides.
 
-**_MutuallyExclusiveGroup_**: One and only one of the attritbutes in this group **MUST** be provided as a primary search key
+**_MutuallyExclusiveGroup_**: One and only one of the attritbutes in this group **MUST** be provided to determine the IP address.
+
+## Attributes Reference
+
+In addition to all the arguments above, the following attributes are exported.
+
+- `ref` -  (Computed, String) Reference id of host record object.

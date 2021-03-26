@@ -20,14 +20,6 @@ func dataSourceRange() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceRangeRead,
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:          schema.TypeString,
-				Description:   "Reference id of range object.",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  dataRangeRequiredFields,
-				ConflictsWith: []string{"cidr"},
-			},
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "The network to which this range belongs, in IPv4 Address/CIDR format.",
@@ -46,19 +38,6 @@ func dataSourceRange() *schema.Resource {
 				Description: "Disable for DHCP.",
 				Computed:    true,
 			},
-			"network_view": {
-				Type:        schema.TypeString,
-				Description: "The name of the network view in which this range resides.",
-				Computed:    true,
-			},
-			"start_address": {
-				Type:             schema.TypeString,
-				Description:      "The IPv4 Address starting address of the range.",
-				Optional:         true,
-				Computed:         true,
-				RequiredWith:     []string{"cidr"},
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
-			},
 			"end_address": {
 				Type:             schema.TypeString,
 				Description:      "The IPv4 Address end address of the range.",
@@ -67,10 +46,13 @@ func dataSourceRange() *schema.Resource {
 				RequiredWith:     []string{"cidr"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
-			"range_function_string": {
-				Type:        schema.TypeString,
-				Description: "String representation of start and end addresses to be used with function calls.",
+			"extensible_attributes": {
+				Type:        schema.TypeMap,
+				Description: "Extensible attributes of range object (Values are JSON encoded).",
 				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"member": {
 				Type:        schema.TypeSet,
@@ -100,6 +82,11 @@ func dataSourceRange() *schema.Resource {
 						},
 					},
 				},
+			},
+			"network_view": {
+				Type:        schema.TypeString,
+				Description: "The name of the network view in which this range resides.",
+				Computed:    true,
 			},
 			"option": {
 				Type:        schema.TypeSet,
@@ -135,14 +122,6 @@ func dataSourceRange() *schema.Resource {
 					},
 				},
 			},
-			"extensible_attributes": {
-				Type:        schema.TypeMap,
-				Description: "Extensible attributes of range object (Values are JSON encoded).",
-				Computed:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
 			"query_params": {
 				Type:        schema.TypeMap,
 				Description: "Additional query parameters.",
@@ -150,6 +129,27 @@ func dataSourceRange() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"range_function_string": {
+				Type:        schema.TypeString,
+				Description: "String representation of start and end addresses to be used with function calls.",
+				Computed:    true,
+			},
+			"ref": {
+				Type:          schema.TypeString,
+				Description:   "Reference id of range object.",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  dataRangeRequiredFields,
+				ConflictsWith: []string{"cidr"},
+			},
+			"start_address": {
+				Type:             schema.TypeString,
+				Description:      "The IPv4 Address starting address of the range.",
+				Optional:         true,
+				Computed:         true,
+				RequiredWith:     []string{"cidr"},
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 			},
 		},
 	}

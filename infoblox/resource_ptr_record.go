@@ -23,26 +23,39 @@ func resourcePtrRecord() *schema.Resource {
 			makeEACustomDiff("extensible_attributes"),
 		),
 		Schema: map[string]*schema.Schema{
-			"ref": {
-				Type:        schema.TypeString,
-				Description: "Reference id of ptr record object.",
+			"comment": {
+				Type:             schema.TypeString,
+				Description:      "Comment for the record; maximum 256 characters.",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
+			},
+			"disable": {
+				Type:        schema.TypeBool,
+				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
+				Optional:    true,
 				Computed:    true,
 			},
-			"name": {
-				Type:          schema.TypeString,
-				Description:   "The name of the DNS PTR record in FQDN format.",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  []string{"name", "pointer_domain_name"},
-				ConflictsWith: []string{"pointer_domain_name"},
+			"dns_name": {
+				Type:        schema.TypeString,
+				Description: "The name for a DNS PTR record in punycode format.",
+				Computed:    true,
 			},
-			"pointer_domain_name": {
-				Type:          schema.TypeString,
-				Description:   "The domain name of the DNS PTR record in FQDN format.",
-				Optional:      true,
-				Computed:      true,
-				AtLeastOneOf:  []string{"name", "pointer_domain_name"},
-				ConflictsWith: []string{"name"},
+			"dns_pointer_domain_name": {
+				Type:        schema.TypeString,
+				Description: "The domain name of the DNS PTR record in punycode format.",
+				Computed:    true,
+			},
+			"extensible_attributes": {
+				Type:             schema.TypeMap,
+				Description:      "Extensible attributes of ptr record (Values are JSON encoded).",
+				Optional:         true,
+				Computed:         true,
+				ValidateDiagFunc: validateEa,
+				DiffSuppressFunc: eaSuppressDiff,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"ip_v4_address": {
 				Type:             schema.TypeString,
@@ -60,27 +73,25 @@ func resourcePtrRecord() *schema.Resource {
 				ConflictsWith:    []string{"ip_v4_address"},
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv6Address),
 			},
-			"dns_name": {
+			"name": {
+				Type:          schema.TypeString,
+				Description:   "The name of the DNS PTR record in FQDN format.",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  []string{"name", "pointer_domain_name"},
+				ConflictsWith: []string{"pointer_domain_name"},
+			},
+			"pointer_domain_name": {
+				Type:          schema.TypeString,
+				Description:   "The domain name of the DNS PTR record in FQDN format.",
+				Optional:      true,
+				Computed:      true,
+				AtLeastOneOf:  []string{"name", "pointer_domain_name"},
+				ConflictsWith: []string{"name"},
+			},
+			"ref": {
 				Type:        schema.TypeString,
-				Description: "The name for a DNS PTR record in punycode format.",
-				Computed:    true,
-			},
-			"dns_pointer_domain_name": {
-				Type:        schema.TypeString,
-				Description: "The domain name of the DNS PTR record in punycode format.",
-				Computed:    true,
-			},
-			"comment": {
-				Type:             schema.TypeString,
-				Description:      "Comment for the record; maximum 256 characters.",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
-			},
-			"disable": {
-				Type:        schema.TypeBool,
-				Description: "Determines if the record is disabled or not. False means that the record is enabled.",
-				Optional:    true,
+				Description: "Reference id of ptr record object.",
 				Computed:    true,
 			},
 			"view": {
@@ -94,17 +105,6 @@ func resourcePtrRecord() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: "The name of the zone in which the record resides.",
 				Computed:    true,
-			},
-			"extensible_attributes": {
-				Type:             schema.TypeMap,
-				Description:      "Extensible attributes of ptr record (Values are JSON encoded).",
-				Optional:         true,
-				Computed:         true,
-				ValidateDiagFunc: validateEa,
-				DiffSuppressFunc: eaSuppressDiff,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
 			},
 		},
 	}
