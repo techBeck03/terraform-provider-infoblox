@@ -152,8 +152,7 @@ func resourceNetwork() *schema.Resource {
 						"code": {
 							Type:        schema.TypeInt,
 							Description: "The code of the DHCP option.",
-							Optional:    true,
-							Computed:    true,
+							Required:    true,
 						},
 						"use_option": {
 							Type:        schema.TypeBool,
@@ -287,6 +286,7 @@ func convertResourceDataToNetwork(client *infoblox.Client, d *schema.ResourceDat
 		for _, option := range optionList {
 			network.Options = append(network.Options, infoblox.Option{
 				Name:        option.(map[string]interface{})["name"].(string),
+				Code:        option.(map[string]interface{})["code"].(int),
 				UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
 				Value:       option.(map[string]interface{})["value"].(string),
 				VendorClass: option.(map[string]interface{})["vendor_class"].(string),
@@ -475,6 +475,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			for _, option := range optionList {
 				network.Options = append(network.Options, infoblox.Option{
 					Name:        option.(map[string]interface{})["name"].(string),
+					Code:        option.(map[string]interface{})["code"].(int),
 					UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
 					Value:       option.(map[string]interface{})["value"].(string),
 					VendorClass: option.(map[string]interface{})["vendor_class"].(string),

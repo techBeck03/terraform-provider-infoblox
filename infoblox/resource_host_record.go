@@ -60,7 +60,6 @@ func resourceHostRecord() *schema.Resource {
 				Type:        schema.TypeString,
 				Description: "The host name in FQDN format.",
 				Required:    true,
-				Computed:    true,
 			},
 			"ip_v4_address": {
 				Type:          schema.TypeSet,

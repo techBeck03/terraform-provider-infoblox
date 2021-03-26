@@ -147,8 +147,7 @@ func resourceRange() *schema.Resource {
 						"code": {
 							Type:        schema.TypeInt,
 							Description: "The code of the DHCP option.",
-							Optional:    true,
-							Computed:    true,
+							Required:    true,
 						},
 						"use_option": {
 							Type:        schema.TypeBool,
@@ -284,6 +283,7 @@ func convertResourceDataToRange(client *infoblox.Client, d *schema.ResourceData)
 		for _, option := range optionList {
 			addressRange.Options = append(addressRange.Options, infoblox.Option{
 				Name:        option.(map[string]interface{})["name"].(string),
+				Code:        option.(map[string]interface{})["code"].(int),
 				UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
 				Value:       option.(map[string]interface{})["value"].(string),
 				VendorClass: option.(map[string]interface{})["vendor_class"].(string),
@@ -516,6 +516,7 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			for _, option := range optionList {
 				addressRange.Options = append(addressRange.Options, infoblox.Option{
 					Name:        option.(map[string]interface{})["name"].(string),
+					Code:        option.(map[string]interface{})["code"].(int),
 					UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
 					Value:       option.(map[string]interface{})["value"].(string),
 					VendorClass: option.(map[string]interface{})["vendor_class"].(string),
