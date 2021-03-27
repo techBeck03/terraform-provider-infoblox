@@ -17,10 +17,10 @@ Provider versioning will align with Infoblox's WAPI release versioning starting 
 To use this provider you will need the `hostname`, `username`, and `password` at a minimum.
 
 ```terraform
-provider "guacamole" {
-  url      = "https://guacamole.example.com"
-  username = "guacadmin"
-  password = "guacadmin"
+provider "infoblox" {
+  url      = "https://infoblox.example.com"
+  username = "admin"
+  password = "password"
   disable_tls_verification = true
   orchestrator_extensible_attributes = {
     Orchestrator = jsonencode({

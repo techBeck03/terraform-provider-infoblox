@@ -13,45 +13,51 @@ import (
 func makeEACustomDiff(arg string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	return func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 		client := v.(*infoblox.Client)
-		if len(*client.OrchestratorEAs) > 0 {
-			old, new := diff.GetChange(arg)
-			eaMap := new.(map[string]interface{})
-			var eas infoblox.ExtensibleAttribute
-			if len(eaMap) > 0 {
-				localEAs, err := createExtensibleAttributesFromJSON(client, eaMap)
-				if err != nil {
-					return err
-				}
-				eas = localEAs
-				if len(old.(map[string]interface{})) > 0 {
-					oldEAs, err := createExtensibleAttributesFromJSON(client, old.(map[string]interface{}))
-					if err != nil {
-						return err
-					}
-					newEAs, err := createExtensibleAttributesFromJSON(client, new.(map[string]interface{}))
-					if err != nil {
-						return err
-					}
-					for k, v := range oldEAs {
-						if v.InheritanceSource != nil && (v.Value == newEAs[k].Value || newEAs[k].Value == nil) {
-							(eas)[k] = v
+		var eas infoblox.ExtensibleAttribute
+		old, new := diff.GetChange(arg)
+		// chageFlag := false
+		eaMap := new.(map[string]interface{})
+		if diff.HasChange(arg) && len(eaMap) > 0 {
+			localEAs, err := createExtensibleAttributesFromJSON(client, eaMap)
+			if err != nil {
+				return err
+			}
+			eas = localEAs
+		}
+		if len(old.(map[string]interface{})) > 0 {
+			oldEAs, err := createExtensibleAttributesFromJSON(client, old.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
+			newEAs, err := createExtensibleAttributesFromJSON(client, new.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
+			for k, v := range oldEAs {
+				if v.InheritanceSource != nil && (newEAs[k].Value == nil || newEAs[k].Value == v.Value) {
+					if eas == nil {
+						eas = infoblox.ExtensibleAttribute{
+							k: v,
 						}
 					}
+					(eas)[k] = v
 				}
 			}
+		}
+		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+
 			for k, v := range *client.OrchestratorEAs {
 				if len(eaMap) == 0 {
 					eas = make(infoblox.ExtensibleAttribute)
 				}
 				(eas)[k] = v
 			}
-
-			finalEas, err := client.ConvertEAsToJSONString(eas)
-			if err != nil {
-				return err
-			}
-			diff.SetNew(arg, finalEas)
 		}
+		finalEas, err := client.ConvertEAsToJSONString(eas)
+		if err != nil {
+			return err
+		}
+		diff.SetNew(arg, finalEas)
 		return nil
 	}
 }

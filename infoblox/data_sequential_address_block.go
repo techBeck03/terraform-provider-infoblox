@@ -122,7 +122,6 @@ func dataSourceSequentialAddressBlockRead(ctx context.Context, d *schema.Resourc
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	prettyPrint(addresses)
 
 	var ipAddressList []map[string]interface{}
 	for _, address := range *addresses {

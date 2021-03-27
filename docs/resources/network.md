@@ -15,13 +15,6 @@ Manages configuration details for a network in infoblox
 resource "infoblox_network" "net" {
   cidr       = "172.19.4.0/24"
   comment    = "example network"
-  gateway_ip = "172.19.4.1"
-  gateway_extensible_attributes = {
-    Gateway = jsonencode({
-      value = "172.19.4.1",
-      type  = "STRING"
-    })
-  }
   network_view      = "default"
   restart_if_needed = true
   grid_ref          = data.infoblox_grid.grid.ref
@@ -29,6 +22,7 @@ resource "infoblox_network" "net" {
     hostname = data.infoblox_grid_member.member.hostname
   }
   option {
+    code  = 3
     name  = "routers"
     value = "172.19.4.1"
   }
@@ -53,9 +47,6 @@ The following attributes are exported.
 - `comment` - (Optional, String) Comment for the record; maximum 256 characters.
 - `disable_dhcp` - (Optional, Bool) Disable for DHCP.
 - `extensible_attributes` - (Optional, Map) Extensible attributes of network (Values are JSON encoded).
-- `gateway_comment` -  (Optional, String) Comment for gateway reservation.
-- `gateway_extensible_attributes` - (Optional, Map) Extensible attributes for gateway fixed reservation.
-- `gateway_ip` - (Optional, String) Default gateway IPv4 address.
 - `grid_ref` -  (Optional, String) Ref for grid needed for restarting services.
 - `member` - (Optional, Set of `1` Object) Grid member associated with network (required to restart services).  Attributes for each set item:
   - `struct` - (Optional, String) Struct type of member (default = `dhcpmember`).

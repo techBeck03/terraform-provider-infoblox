@@ -2,8 +2,6 @@ package infoblox
 
 import (
 	"context"
-	"fmt"
-	"net"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -24,7 +22,6 @@ func resourceNetwork() *schema.Resource {
 		// },
 		CustomizeDiff: customdiff.Sequence(
 			makeEACustomDiff("extensible_attributes"),
-			makeEACustomDiff("gateway_extensible_attributes"),
 			optionCustomDiff,
 		),
 		Schema: map[string]*schema.Schema{
@@ -57,32 +54,6 @@ func resourceNetwork() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},
-			"gateway_comment": {
-				Type:             schema.TypeString,
-				Description:      "Comment for gateway reservation.",
-				Optional:         true,
-				Default:          "Gateway",
-				AtLeastOneOf:     []string{"gateway_ip"},
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPAddress),
-			},
-			"gateway_extensible_attributes": {
-				Type:             schema.TypeMap,
-				Description:      "Extensible attributes for gateway fixed reservation.",
-				Optional:         true,
-				Computed:         true,
-				AtLeastOneOf:     []string{"gateway_ip"},
-				ValidateDiagFunc: validateEa,
-				DiffSuppressFunc: eaSuppressDiff,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"gateway_ip": {
-				Type:             schema.TypeString,
-				Description:      "Default gateway IPv4 address.",
-				Optional:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPAddress),
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
@@ -222,33 +193,6 @@ func convertNetworkToResourceData(client *infoblox.Client, d *schema.ResourceDat
 
 	d.Set("option", optionList)
 
-	_, ok := d.GetOk("gateway_extensible_attributes")
-	if ok {
-		existingFixedAddress, err := client.GetFixedAddressByQuery(map[string]string{
-			"network":  d.Get("cidr").(string),
-			"ipv4addr": d.Get("gateway_ip").(string),
-		})
-		if err != nil {
-			diags = append(diags, diag.FromErr(err)...)
-		} else {
-			if len(existingFixedAddress) != 1 {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Error retrieving gateway fixed address",
-					Detail:   fmt.Sprintf("Multiple fixed addresses found for gateway_ip: %s", d.Get("gateway_ip").(string)),
-				})
-			} else {
-				gwEAs, err := client.ConvertEAsToJSONString(*existingFixedAddress[0].ExtensibleAttributes)
-				if err != nil {
-					diags = append(diags, diag.FromErr(err)...)
-				} else {
-					d.Set("gateway_extensible_attributes", gwEAs)
-				}
-			}
-		}
-
-	}
-
 	eas, err := client.ConvertEAsToJSONString(*network.ExtensibleAttributes)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
@@ -339,19 +283,6 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	var diags diag.Diagnostics
 
-	gw, ok := d.GetOk("gateway_ip")
-	if ok {
-		_, parsedNetwork, _ := net.ParseCIDR(d.Get("cidr").(string))
-		if parsedNetwork.Contains(net.ParseIP(gw.(string))) != true {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Invalid gateway IP address",
-				Detail:   fmt.Sprintf("Gateway address: %s is not within network CIDR: %s", gw.(string), d.Get("cidr").(string)),
-			})
-			return diags
-		}
-	}
-
 	network, err := convertResourceDataToNetwork(client, d)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
@@ -366,32 +297,6 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	if diags.HasError() {
 		return diags
-	}
-
-	if ok {
-		gwFixedAddress := infoblox.FixedAddress{
-			IPAddress:   gw.(string),
-			Comment:     d.Get("gateway_comment").(string),
-			MatchClient: "RESERVED",
-		}
-		eaMap := d.Get("gateway_extensible_attributes").(map[string]interface{})
-		if len(eaMap) > 0 {
-			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
-			if err != nil {
-				diags = append(diags, diag.FromErr(err)...)
-			}
-			gwFixedAddress.ExtensibleAttributes = &eas
-		}
-
-		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
-			for k, v := range *client.OrchestratorEAs {
-				(*gwFixedAddress.ExtensibleAttributes)[k] = v
-			}
-		}
-		err = client.CreateFixedAddress(&gwFixedAddress)
-		if err != nil {
-			diags = append(diags, diag.FromErr(err)...)
-		}
 	}
 
 	if d.Get("restart_if_needed").(bool) && len(network.Members) == 1 {
@@ -423,22 +328,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if d.HasChange("cidr") {
 		network.CIDR = d.Get("cidr").(string)
 	}
-	if d.HasChange("gateway_ip") {
-		gw, ok := d.GetOk("gateway_ip")
-		if ok {
-			old, _ := d.GetChange("gateway_ip")
-			_, parsedNetwork, _ := net.ParseCIDR(d.Get("cidr").(string))
-			if parsedNetwork.Contains(net.ParseIP(gw.(string))) != true {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Invalid gateway IP address",
-					Detail:   fmt.Sprintf("Gateway address: %s is not within network CIDR: %s", gw.(string), d.Get("cidr").(string)),
-				})
-				d.Set("gateway_ip", old.(string))
-				return diags
-			}
-		}
-	}
+
 	if d.HasChange("comment") {
 		network.Comment = d.Get("comment").(string)
 	}
@@ -503,63 +393,6 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
-	}
-	if d.HasChanges("gateway_ip", "gateway_comment", "gateway_extensible_attributes") {
-		_, ok := d.GetOk("gateway_ip")
-		old, new := d.GetChange("gateway_ip")
-		if new.(string) != "" || (ok && d.HasChanges("gateway_comment", "gateway_etensible_attributes")) {
-			gwFixedAddress := infoblox.FixedAddress{
-				IPAddress:   new.(string),
-				Comment:     d.Get("gateway_comment").(string),
-				MatchClient: "RESERVED",
-			}
-			eaMap := d.Get("gateway_extensible_attributes").(map[string]interface{})
-			if len(eaMap) > 0 {
-				eas, err := createExtensibleAttributesFromJSON(client, eaMap)
-				if err != nil {
-					diags = append(diags, diag.FromErr(err)...)
-				}
-				gwFixedAddress.ExtensibleAttributes = &eas
-			}
-
-			if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
-				for k, v := range *client.OrchestratorEAs {
-					(*gwFixedAddress.ExtensibleAttributes)[k] = v
-				}
-			}
-			if old != "" {
-				existingFixedAddress, err := client.GetFixedAddressByQuery(map[string]string{
-					"network":  d.Get("cidr").(string),
-					"ipv4addr": old.(string),
-				})
-				if err != nil {
-					diags = append(diags, diag.FromErr(err)...)
-				} else {
-					_, err = client.UpdateFixedAddress(existingFixedAddress[0].Ref, gwFixedAddress)
-					if err != nil {
-						diags = append(diags, diag.FromErr(err)...)
-					}
-				}
-			} else {
-				err = client.CreateFixedAddress(&gwFixedAddress)
-				if err != nil {
-					diags = append(diags, diag.FromErr(err)...)
-				}
-			}
-		} else {
-			existingFixedAddress, err := client.GetFixedAddressByQuery(map[string]string{
-				"network":  d.Get("cidr").(string),
-				"ipv4addr": old.(string),
-			})
-			if err != nil {
-				diags = append(diags, diag.FromErr(err)...)
-			} else {
-				err = client.DeleteFixedAddress(existingFixedAddress[0].Ref)
-				if err != nil {
-					diags = append(diags, diag.FromErr(err)...)
-				}
-			}
-		}
 	}
 
 	d.SetId(changedNetwork.Ref)
