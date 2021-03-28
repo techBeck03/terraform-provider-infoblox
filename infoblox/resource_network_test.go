@@ -31,8 +31,6 @@ func TestAccInfobloxNetworkBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_network.new", "option.0.name", "routers"),
 					resource.TestCheckResourceAttr("infoblox_network.new", "option.0.code", "3"),
 					resource.TestCheckResourceAttr("infoblox_network.new", "option.0.value", "172.19.4.1"),
-					resource.TestCheckResourceAttr("infoblox_fixed_address.gw", "ip_address", "172.19.4.1"),
-					resource.TestCheckResourceAttr("infoblox_fixed_address.gw", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
 				),
 			},
 			{
@@ -102,17 +100,6 @@ resource "infoblox_network" "new" {
 	  })
 	}
 }
-resource "infoblox_fixed_address" "gw" {
-	ip_address = "172.19.4.1"
-	cidr              = infoblox_network.new.cidr
-	comment           = "Default Gateway"
-	match_client      = "RESERVED"
-	restart_if_needed = true
-	grid_ref          = data.infoblox_grid.grid.ref
-	member {
-	  hostname = data.infoblox_grid_member.member.hostname
-	}
-  }
 `, gridMemberHostname)
 
 var testProviderNetworkUpdate = fmt.Sprintf(`
@@ -150,17 +137,6 @@ resource "infoblox_network" "new" {
 		value = "172.19.4.1",
 		type  = "STRING"
 	  })
-	}
-}
-resource "infoblox_fixed_address" "gw" {
-	ip_address = "172.19.4.1"
-	cidr              = infoblox_network.new.cidr
-	comment           = "Default Gateway"
-	match_client      = "RESERVED"
-	restart_if_needed = true
-	grid_ref          = data.infoblox_grid.grid.ref
-	member {
-	  hostname = data.infoblox_grid_member.member.hostname
 	}
 }
 `, gridMemberHostname)

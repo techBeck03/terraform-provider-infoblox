@@ -34,7 +34,7 @@ func TestAccInfobloxCnameRecordBasic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxCnameRecordExists("infoblox_a_record.new"),
 					testAccCheckInfobloxCnameRecordExists("infoblox_cname_record.new"),
-					resource.TestCheckResourceAttr("infoblox_cname_record.new", "alias", fmt.Sprintf("alias-infoblox-test.%s", cNameDomainName)),
+					resource.TestCheckResourceAttr("infoblox_cname_record.new", "alias", fmt.Sprintf("alias-infoblox-test2.%s", cNameDomainName)),
 					resource.TestCheckResourceAttr("infoblox_cname_record.new", "canonical", fmt.Sprintf("infoblox-test.%s", cNameDomainName)),
 					resource.TestCheckResourceAttr("infoblox_cname_record.new", "comment", "test cname record update"),
 					resource.TestCheckResourceAttr("infoblox_cname_record.new", "disable", "false"),
