@@ -7,9 +7,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/techBeck03/go-ipmath"
 )
 
-var aRecordDomainName = os.Getenv("INFOBLOX_DOMAIN")
+var (
+	aRecordDomainName = os.Getenv("INFOBLOX_DOMAIN")
+	aRecordIPAddress  string
+)
 
 func TestAccInfobloxARecordBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -17,27 +21,29 @@ func TestAccInfobloxARecordBasic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderARecordCreate,
+				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxARecordCreate()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxARecordExists("infoblox_a_record.new"),
-					resource.TestCheckResourceAttr("infoblox_a_record.new", "ip_address", "172.19.4.6"),
+					resource.TestCheckResourceAttr("infoblox_a_record.new", "ip_address", aRecordIPAddress),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "comment", "test a record"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "disable", "true"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "hostname", fmt.Sprintf("infoblox-test.%s", aRecordDomainName)),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
 			{
-				Config: testProviderARecordUpdate,
+				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxARecordUpdate()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxARecordExists("infoblox_a_record.new"),
-					resource.TestCheckResourceAttr("infoblox_a_record.new", "ip_address", "172.19.4.7"),
+					resource.TestCheckResourceAttr("infoblox_a_record.new", "ip_address", aRecordIPAddress),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "comment", "test a record update"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "disable", "false"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "hostname", fmt.Sprintf("infoblox-test2.%s", aRecordDomainName)),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Location", "{\"value\":\"CollegeStation2\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins2\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
 		},
@@ -53,35 +59,44 @@ func testAccCheckInfobloxARecordExists(resourceName string) resource.TestCheckFu
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No connection group set")
+			return fmt.Errorf("Resource: %s not set", resourceName)
 		}
 
 		return nil
 	}
 }
 
-var testProviderARecordCreate = fmt.Sprintf(`
+func testAccCheckInfobloxARecordCreate() string {
+	aRecordNetworkAddress, _ := ipmath.NewIP(os.Getenv("INFOBLOX_TEST_NETWORK"))
+	aRecordNetworkAddress.Add(2)
+	aRecordIPAddress = aRecordNetworkAddress.ToIPString()
+	return fmt.Sprintf(`
 resource "infoblox_a_record" "new"{
-	ip_address = "172.19.4.6"
+	ip_address = "%s"
 	comment    = "test a record"
 	hostname   = "infoblox-test.%s"
 	disable    = true
 	extensible_attributes = {
-	  Location = jsonencode({
+	Location = jsonencode({
 		value = "CollegeStation",
 		type  = "STRING"
-	  })
-	  Owner = jsonencode({
+	})
+	Owner = jsonencode({
 		value = "leroyjenkins",
 		type  = "STRING"
-	  })
+	})
 	}
 }
-`, aRecordDomainName)
+`, aRecordIPAddress, aRecordDomainName)
+}
 
-var testProviderARecordUpdate = fmt.Sprintf(`
+func testAccCheckInfobloxARecordUpdate() string {
+	aRecordNetworkAddress, _ := ipmath.NewIP(os.Getenv("INFOBLOX_TEST_NETWORK"))
+	aRecordNetworkAddress.Add(3)
+	aRecordIPAddress = aRecordNetworkAddress.ToIPString()
+	return fmt.Sprintf(`
 resource "infoblox_a_record" "new"{
-	ip_address = "172.19.4.7"
+	ip_address = "%s"
 	comment    = "test a record update"
 	hostname   = "infoblox-test2.%s"
 	disable    = false
@@ -96,4 +111,5 @@ resource "infoblox_a_record" "new"{
 	  })
 	}
 }
-`, aRecordDomainName)
+`, aRecordIPAddress, aRecordDomainName)
+}

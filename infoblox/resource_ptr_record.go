@@ -159,6 +159,9 @@ func convertResourceDataToPtrRecord(client *infoblox.Client, d *schema.ResourceD
 	}
 
 	if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+		if record.ExtensibleAttributes == nil {
+			record.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+		}
 		for k, v := range *client.OrchestratorEAs {
 			(*record.ExtensibleAttributes)[k] = v
 		}
@@ -249,8 +252,8 @@ func resourcePtrRecordUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	if d.HasChange("zone") {
 		record.Zone = d.Get("zone").(string)
 	}
-	if d.HasChange("extensible_attributes") {
-		eaMap := d.Get("extensible_attributes").(map[string]interface{})
+	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
+		eaMap := extensibleAttributes.(map[string]interface{})
 		if len(eaMap) > 0 {
 			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
 			if err != nil {

@@ -1,11 +1,11 @@
 package infoblox
 
 import (
+	"net"
 	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var testAccProviders map[string]*schema.Provider
@@ -13,13 +13,6 @@ var testAccProvider *schema.Provider
 
 func init() {
 	testAccProvider = Provider()
-	var rc terraform.ResourceConfig
-	rc.Config = map[string]interface{}{
-		"orchestrator_extensible_attributes": map[string]string{
-			"Orchestrator": "{\"value\":\"Terraform\",\"type\":\"ENUM\"}",
-		},
-	}
-	testAccProvider.Configure(nil, &rc)
 	testAccProviders = map[string]*schema.Provider{
 		"infoblox": testAccProvider,
 	}
@@ -54,4 +47,30 @@ func testAccPreCheck(t *testing.T) {
 	if err := os.Getenv("INFOBLOX_DISABLE_TLS"); err == "" {
 		t.Fatal("INFOBLOX_DISABLE_TLS must be set for acceptance tests")
 	}
+	testNetwork := os.Getenv("INFOBLOX_TEST_NETWORK")
+	if testNetwork == "" {
+		t.Fatal("INFOBLOX_TEST_NETWORK must be set for acceptance tests")
+	} else {
+		_, net, err := net.ParseCIDR(testNetwork)
+		if err != nil {
+			t.Fatal(err)
+		}
+		prefix, _ := net.Mask.Size()
+		if prefix != 24 {
+			t.Fatal("INFOBLOX_TEST_NETWORK must be a properly formatted /24 CIDR network string")
+		} else if testNetwork != net.String() {
+			t.Fatalf("INFOBLOX_TEST_NETWORK expected to be: %s but found: %s", net.String(), testNetwork)
+		}
+	}
 }
+
+var testAccProviderBaseConfig = `
+  provider infoblox {
+    orchestrator_extensible_attributes = {
+      Orchestrator = jsonencode({
+        value = "Terraform",
+        type  = "ENUM"
+      })
+    }
+  }
+`

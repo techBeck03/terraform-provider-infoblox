@@ -301,6 +301,9 @@ func convertResourceDataToRange(client *infoblox.Client, d *schema.ResourceData)
 	}
 
 	if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+		if addressRange.ExtensibleAttributes == nil {
+			addressRange.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+		}
 		for k, v := range *client.OrchestratorEAs {
 			(*addressRange.ExtensibleAttributes)[k] = v
 		}
@@ -525,8 +528,8 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		}
 	}
 
-	if d.HasChange("extensible_attributes") {
-		eaMap := d.Get("extensible_attributes").(map[string]interface{})
+	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
+		eaMap := extensibleAttributes.(map[string]interface{})
 		if len(eaMap) > 0 {
 			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
 			if err != nil {

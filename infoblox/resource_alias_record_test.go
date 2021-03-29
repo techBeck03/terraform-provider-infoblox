@@ -17,7 +17,7 @@ func TestAccInfobloxAliasRecordBasic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: composeConfig(testProviderARecordCreate, testProviderAliasRecordCreate),
+				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxARecordCreate(), testAccCheckInfobloxAliasRecordCreate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxAliasRecordExists("infoblox_a_record.new"),
 					testAccCheckInfobloxAliasRecordExists("infoblox_alias_record.new"),
@@ -28,10 +28,11 @@ func TestAccInfobloxAliasRecordBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "disable", "true"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
 			{
-				Config: composeConfig(testProviderARecordCreate, testProviderAliasRecordUpdate),
+				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxARecordCreate(), testAccCheckInfobloxAliasRecordUpdate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxAliasRecordExists("infoblox_a_record.new"),
 					testAccCheckInfobloxAliasRecordExists("infoblox_alias_record.new"),
@@ -42,6 +43,7 @@ func TestAccInfobloxAliasRecordBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "disable", "false"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Location", "{\"value\":\"CollegeStation2\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins2\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
 		},
@@ -57,14 +59,14 @@ func testAccCheckInfobloxAliasRecordExists(resourceName string) resource.TestChe
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No connection group set")
+			return fmt.Errorf("Resource: %s not set", resourceName)
 		}
 
 		return nil
 	}
 }
 
-var testProviderAliasRecordCreate = fmt.Sprintf(`
+var testAccCheckInfobloxAliasRecordCreate = fmt.Sprintf(`
 resource "infoblox_alias_record" "new"{
 	name        = "alias-infoblox-test.%s"
   target_name = infoblox_a_record.new.hostname
@@ -84,7 +86,7 @@ resource "infoblox_alias_record" "new"{
 }
 `, aliasRecordDomainName)
 
-var testProviderAliasRecordUpdate = fmt.Sprintf(`
+var testAccCheckInfobloxAliasRecordUpdate = fmt.Sprintf(`
 resource "infoblox_alias_record" "new"{
 	name        = "aliasupdate-infoblox-test.%s"
   target_name = infoblox_a_record.new.hostname
