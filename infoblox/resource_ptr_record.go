@@ -151,7 +151,7 @@ func convertResourceDataToPtrRecord(client *infoblox.Client, d *schema.ResourceD
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
 	if len(eaMap) > 0 {
-		eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+		eas, err := createExtensibleAttributesFromJSON(eaMap)
 		if err != nil {
 			return &record, err
 		}
@@ -255,7 +255,7 @@ func resourcePtrRecordUpdate(ctx context.Context, d *schema.ResourceData, m inte
 	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
 		eaMap := extensibleAttributes.(map[string]interface{})
 		if len(eaMap) > 0 {
-			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+			eas, err := createExtensibleAttributesFromJSON(eaMap)
 			if err != nil {
 				diags = append(diags, diag.FromErr(err)...)
 				return diags
@@ -263,6 +263,9 @@ func resourcePtrRecordUpdate(ctx context.Context, d *schema.ResourceData, m inte
 			record.ExtensibleAttributes = &eas
 		}
 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+			if record.ExtensibleAttributes == nil {
+				record.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+			}
 			for k, v := range *client.OrchestratorEAs {
 				(*record.ExtensibleAttributes)[k] = v
 			}

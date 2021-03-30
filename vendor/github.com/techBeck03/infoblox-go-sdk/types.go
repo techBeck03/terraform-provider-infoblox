@@ -35,8 +35,10 @@ type ExtensibleAttribute map[string]ExtensibleAttributeValue
 
 // ExtensibleAttributeValue return value of ea
 type ExtensibleAttributeValue struct {
-	Value             interface{}        `json:"value,omitempty"`
-	InheritanceSource *InheritanceSource `json:"inheritance_source,omitempty"`
+	Value                interface{}        `json:"value,omitempty"`
+	InheritanceSource    *InheritanceSource `json:"inheritance_source,omitempty"`
+	InheritanceOperation string             `json:"inheritance_operation,omitempty"`
+	DescendantsAction    *DescendantsAction `json:"descendants_action,omitempty"`
 }
 
 // InheritanceSource defines inheritance of an EA
@@ -44,14 +46,23 @@ type InheritanceSource struct {
 	Ref string `json:"_ref,omitempty"`
 }
 
+// DescendantsAction defines inheritance of an EA
+type DescendantsAction struct {
+	OptionDeleteEA  string `json:"option_delete_ea,omitempty"`
+	OptionWithEA    string `json:"option_with_ea,omitempty"`
+	OptionWithoutEA string `json:"option_without_ea,omitempty"`
+}
+
 // ExtensibleAttributeJSONMap ea object in terraform friendly JSON
 type ExtensibleAttributeJSONMap map[string]ExtensibleAttributeJSONMapValue
 
 // ExtensibleAttributeJSONMapValue value of ea in terraform friendly JSON
 type ExtensibleAttributeJSONMapValue struct {
-	Value             interface{}        `json:"value,omitempty"`
-	Type              string             `json:"type,omitempty"`
-	InheritanceSource *InheritanceSource `json:"inheritance_source,omitempty"`
+	Value                interface{}        `json:"value,omitempty"`
+	Type                 string             `json:"type,omitempty"`
+	InheritanceSource    *InheritanceSource `json:"inheritance_source,omitempty"`
+	InheritanceOperation string             `json:"inheritance_operation,omitempty"`
+	DescendantsAction    *DescendantsAction `json:"descendants_action,omitempty"`
 }
 
 // Network object
@@ -106,32 +117,35 @@ type ListValue struct {
 
 // HostRecord object
 type HostRecord struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	Hostname             string               `json:"name,omitempty"`
-	Comment              string               `json:"comment,omitempty"`
-	EnableDNS            *bool                `json:"configure_for_dns,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
-	IPv4Addrs            []IPv4Addr           `json:"ipv4addrs,omitempty"`
-	NetworkView          string               `json:"network_view,omitempty"`
-	RestartIfNeeded      *bool                `json:"restart_if_needed,omitempty"`
-	View                 string               `json:"view,omitempty"`
-	Zone                 string               `json:"zone,omitempty"`
+	Ref                        string               `json:"_ref,omitempty"`
+	Hostname                   string               `json:"name,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	EnableDNS                  *bool                `json:"configure_for_dns,omitempty"`
+	IPv4Addrs                  []IPv4Addr           `json:"ipv4addrs,omitempty"`
+	NetworkView                string               `json:"network_view,omitempty"`
+	RestartIfNeeded            *bool                `json:"restart_if_needed,omitempty"`
+	View                       string               `json:"view,omitempty"`
+	Zone                       string               `json:"zone,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
 }
 
 // IPv4Addr object
 type IPv4Addr struct {
-	Ref              string                 `json:"_ref,omitempty"`
-	Host             string                 `json:"host,omitempty"`
-	IPAddress        string                 `json:"ipv4addr,omitempty"`
-	Mac              string                 `json:"mac,omitempty"`
-	CIDR             string                 `json:"network,omitempty"`
-	ConfigureForDHCP *bool                  `json:"configure_for_dhcp,omitempty"`
-	NextServer       string                 `json:"nextserver,omitempty"`
-	ObjectFunction   string                 `json:"_object_function,omitempty"`
-	Parameters       map[string]interface{} `json:"_parameters,omitempty"`
-	ResultField      string                 `json:"_result_field,omitempty"`
-	Object           string                 `json:"_object,omitempty"`
-	ObjectParameters map[string]interface{} `json:"_object_parameters,omitempty"`
+	Ref                 string                 `json:"_ref,omitempty"`
+	Host                string                 `json:"host,omitempty"`
+	IPAddress           string                 `json:"ipv4addr,omitempty"`
+	Mac                 string                 `json:"mac,omitempty"`
+	CIDR                string                 `json:"network,omitempty"`
+	ConfigureForDHCP    *bool                  `json:"configure_for_dhcp,omitempty"`
+	NextServer          string                 `json:"nextserver,omitempty"`
+	ObjectFunction      string                 `json:"_object_function,omitempty"`
+	UseForEAInheritance *bool                  `json:"use_for_ea_inheritance,omitempty"`
+	Parameters          map[string]interface{} `json:"_parameters,omitempty"`
+	ResultField         string                 `json:"_result_field,omitempty"`
+	Object              string                 `json:"_object,omitempty"`
+	ObjectParameters    map[string]interface{} `json:"_object_parameters,omitempty"`
 }
 
 // FixedAddress object

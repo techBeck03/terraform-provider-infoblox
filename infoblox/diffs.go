@@ -15,21 +15,20 @@ func makeEACustomDiff(arg string) func(_ context.Context, diff *schema.ResourceD
 		client := v.(*infoblox.Client)
 		var eas infoblox.ExtensibleAttribute
 		old, new := diff.GetChange(arg)
-		// chageFlag := false
 		eaMap := new.(map[string]interface{})
 		if diff.HasChange(arg) && len(eaMap) > 0 {
-			localEAs, err := createExtensibleAttributesFromJSON(client, eaMap)
+			localEAs, err := createExtensibleAttributesFromJSON(eaMap)
 			if err != nil {
 				return err
 			}
 			eas = localEAs
 		}
 		if len(old.(map[string]interface{})) > 0 {
-			oldEAs, err := createExtensibleAttributesFromJSON(client, old.(map[string]interface{}))
+			oldEAs, err := createExtensibleAttributesFromJSON(old.(map[string]interface{}))
 			if err != nil {
 				return err
 			}
-			newEAs, err := createExtensibleAttributesFromJSON(client, new.(map[string]interface{}))
+			newEAs, err := createExtensibleAttributesFromJSON(new.(map[string]interface{}))
 			if err != nil {
 				return err
 			}

@@ -13,6 +13,7 @@ Manages configuration details for a host record in infoblox
 
 ### Specify IP address
 ```terraform
+resource "infoblox_host_record" "static" {
   hostname   = "realhost.example.com"
   comment    = "example host record"
   enable_dns = true
@@ -29,10 +30,12 @@ Manages configuration details for a host record in infoblox
       type  = "STRING"
     })
   }
+}
 ```
 
 ### next_available_ip from range
 ```terraform
+resource "infoblox_host_record" "from-range" {
   hostname   = "realhost.example.com"
   comment    = "example host record"
   enable_dns = true
@@ -47,10 +50,12 @@ Manages configuration details for a host record in infoblox
       type  = "STRING"
     })
   }
+}
 ```
 
 ### next_available_ip from network
 ```terraform
+resource "infoblox_host_record" "from-network" {
   hostname   = "realhost.example.com"
   comment    = "example host record"
   enable_dns = true
@@ -65,6 +70,7 @@ Manages configuration details for a host record in infoblox
       type  = "STRING"
     })
   }
+}
 ```
 
 

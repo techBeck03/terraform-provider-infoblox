@@ -40,5 +40,3 @@ provider "infoblox" {
 - **disable_tls_verification** (Optional, Bool) Whether to disable tls verification for ssl connections (defaults to environment variable `INFOBLOX_DISABLE_TLS` or `false` if no value is set).
 - **wapi_version** (Optional, String) WAPI version (defaults to environment variable `INFOBLOX_VERSION` or `2.11` if no value is set).
 - **orchestrator_extensible_attributes** (Optional, Map) Extensible attributes applied to all objects configured by provider. 
-
-```

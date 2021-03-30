@@ -7,7 +7,7 @@ import (
 
 const (
 	hostRecordBasePath     = "record:host"
-	hostRecordReturnFields = "name,view,network_view,configure_for_dns,comment,zone,ipv4addrs,ipv4addrs.host,ipv4addrs.network,ipv4addrs.ipv4addr,ipv4addrs.mac,ipv4addrs.configure_for_dhcp,ipv4addrs.nextserver,extattrs"
+	hostRecordReturnFields = "name,view,network_view,configure_for_dns,comment,zone,ipv4addrs,ipv4addrs.host,ipv4addrs.network,ipv4addrs.ipv4addr,ipv4addrs.mac,ipv4addrs.configure_for_dhcp,ipv4addrs.nextserver,ipv4addrs.use_for_ea_inheritance,extattrs"
 )
 
 // GetHostRecordByRef gets host record by reference

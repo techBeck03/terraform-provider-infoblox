@@ -105,6 +105,12 @@ func resourceHostRecord() *schema.Resource {
 							Optional:    true,
 							Computed:    true,
 						},
+						"use_for_ea_inheritance": {
+							Type:        schema.TypeBool,
+							Description: "Set this to True when using this host address for EA inheritance.",
+							Optional:    true,
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -167,12 +173,13 @@ func convertHostRecordToResourceData(client *infoblox.Client, d *schema.Resource
 	var ipAddressList []map[string]interface{}
 	for _, address := range record.IPv4Addrs {
 		ipAddressList = append(ipAddressList, map[string]interface{}{
-			"ref":                address.Ref,
-			"ip_address":         address.IPAddress,
-			"hostname":           address.Host,
-			"network":            address.CIDR,
-			"mac_address":        address.Mac,
-			"configure_for_dhcp": address.ConfigureForDHCP,
+			"ref":                    address.Ref,
+			"ip_address":             address.IPAddress,
+			"hostname":               address.Host,
+			"network":                address.CIDR,
+			"mac_address":            address.Mac,
+			"configure_for_dhcp":     address.ConfigureForDHCP,
+			"use_for_ea_inheritance": address.UseForEAInheritance,
 		})
 	}
 
@@ -220,6 +227,7 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
 			}
 			ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
+			ipv4Addr.UseForEAInheritance = newBool(address.(map[string]interface{})["use_for_ea_inheritance"].(bool))
 			if address.(map[string]interface{})["mac_address"].(string) != "" {
 				ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
 			}
@@ -229,7 +237,7 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
 	if len(eaMap) > 0 {
-		eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+		eas, err := createExtensibleAttributesFromJSON(eaMap)
 		if err != nil {
 			return &record, err
 		}
@@ -344,6 +352,7 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 				}
 
 				ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
+				ipv4Addr.UseForEAInheritance = newBool(address.(map[string]interface{})["use_for_ea_inheritance"].(bool))
 				if address.(map[string]interface{})["mac_address"].(string) != "" {
 					ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
 				}
@@ -351,17 +360,36 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 			}
 		}
 	}
-	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
-		eaMap := extensibleAttributes.(map[string]interface{})
-		if len(eaMap) > 0 {
-			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+	if d.HasChange("extensible_attributes") {
+		old, new := d.GetChange("extensible_attributes")
+		oldEAs := old.(map[string]interface{})
+		newEAs := new.(map[string]interface{})
+		removeEAs := sliceDiff(Keys(oldEAs), Keys(newEAs), false)
+		if len(removeEAs) > 0 {
+			convertedEAs, err := createExtensibleAttributesFromJSON(oldEAs)
 			if err != nil {
-				diags = append(diags, diag.FromErr(err)...)
-				return diags
+				return diag.FromErr(err)
 			}
-			record.ExtensibleAttributes = &eas
+			record.ExtensibleAttributesRemove = &infoblox.ExtensibleAttribute{}
+			for _, v := range removeEAs {
+				(*record.ExtensibleAttributesRemove)[v] = convertedEAs[v]
+			}
+		}
+		addEAs := sliceDiff(Keys(newEAs), Keys(oldEAs), false)
+		if len(addEAs) > 0 {
+			convertedEAs, err := createExtensibleAttributesFromJSON(newEAs)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			record.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
+			for _, v := range addEAs {
+				(*record.ExtensibleAttributesAdd)[v] = convertedEAs[v]
+			}
 		}
 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+			if record.ExtensibleAttributes == nil {
+				record.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+			}
 			for k, v := range *client.OrchestratorEAs {
 				(*record.ExtensibleAttributes)[k] = v
 			}

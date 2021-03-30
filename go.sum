@@ -277,6 +277,12 @@ github.com/techBeck03/go-ipmath v0.0.8 h1:U/z7bYt+92I/VpbJvpW48+hnPC0rOmvLuyEuiU
 github.com/techBeck03/go-ipmath v0.0.8/go.mod h1:VugtTa3vBBdfSTeYQQov/NzzXt40R+LtuFr15KWUhpY=
 github.com/techBeck03/infoblox-go-sdk v0.0.33-alpha h1:bKKSmYrb7XK8+W40URq3qXgA+evp44YhlAI0Tt5f0sA=
 github.com/techBeck03/infoblox-go-sdk v0.0.33-alpha/go.mod h1:miTvClw8XenPYZ9psw+71AmtlPmY2Lu0EPLBWJ0JIQw=
+github.com/tidwall/gjson v1.7.4 h1:19cchw8FOxkG5mdLRkGf9jqIqEyqdZhPqW60XfyFxk8=
+github.com/tidwall/gjson v1.7.4/go.mod h1:5/xDoumyyDNerp2U36lyolv46b3uF/9Bu6OfyQ9GImk=
+github.com/tidwall/match v1.0.3 h1:FQUVvBImDutD8wJLN6c5eMzWtjgONK9MwIBCOrUJKeE=
+github.com/tidwall/match v1.0.3/go.mod h1:eRSPERbgtNPcGhD8UCthc6PmLEQXEWd3PRB5JTxsfmM=
+github.com/tidwall/pretty v1.1.0 h1:K3hMW5epkdAVwibsQEfR/7Zj0Qgt4DxtNumTq/VloO8=
+github.com/tidwall/pretty v1.1.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/ulikunitz/xz v0.5.5/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4ABRW8=
 github.com/ulikunitz/xz v0.5.8 h1:ERv8V6GKqVi23rgu5cj9pVfVzJbOqAY2Ntl88O6c2nQ=
 github.com/ulikunitz/xz v0.5.8/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=

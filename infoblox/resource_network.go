@@ -193,7 +193,11 @@ func convertNetworkToResourceData(client *infoblox.Client, d *schema.ResourceDat
 
 	d.Set("option", optionList)
 
-	eas, err := client.ConvertEAsToJSONString(*network.ExtensibleAttributes)
+	modifiedEAs, err := handleExtenisbleAttributesInheritanceValues(network.ExtensibleAttributes, d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	eas, err := client.ConvertEAsToJSONString(modifiedEAs)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	} else {
@@ -240,7 +244,7 @@ func convertResourceDataToNetwork(client *infoblox.Client, d *schema.ResourceDat
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
 	if len(eaMap) > 0 {
-		eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+		eas, err := createExtensibleAttributesFromJSON(eaMap)
 		if err != nil {
 			return &network, err
 		}
@@ -379,7 +383,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
 		eaMap := extensibleAttributes.(map[string]interface{})
 		if len(eaMap) > 0 {
-			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+			eas, err := createExtensibleAttributesFromJSON(eaMap)
 			if err != nil {
 				diags = append(diags, diag.FromErr(err)...)
 				return diags
@@ -387,6 +391,9 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			network.ExtensibleAttributes = &eas
 		}
 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+			if network.ExtensibleAttributes == nil {
+				network.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+			}
 			for k, v := range *client.OrchestratorEAs {
 				(*network.ExtensibleAttributes)[k] = v
 			}

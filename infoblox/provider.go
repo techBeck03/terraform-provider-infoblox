@@ -119,7 +119,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 
 	eaMap := d.Get("orchestrator_extensible_attributes").(map[string]interface{})
 	if len(eaMap) > 0 {
-		eas, err := createExtensibleAttributesFromJSON(&client, eaMap)
+		eas, err := createExtensibleAttributesFromJSON(eaMap)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}

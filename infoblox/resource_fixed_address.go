@@ -277,7 +277,7 @@ func convertResourceDataToFixedAddress(client *infoblox.Client, d *schema.Resour
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
 	if len(eaMap) > 0 {
-		eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+		eas, err := createExtensibleAttributesFromJSON(eaMap)
 		if err != nil {
 			return &fixedAddress, err
 		}
@@ -434,7 +434,7 @@ func resourceFixedAddressUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
 		eaMap := extensibleAttributes.(map[string]interface{})
 		if len(eaMap) > 0 {
-			eas, err := createExtensibleAttributesFromJSON(client, eaMap)
+			eas, err := createExtensibleAttributesFromJSON(eaMap)
 			if err != nil {
 				diags = append(diags, diag.FromErr(err)...)
 				return diags
@@ -442,6 +442,9 @@ func resourceFixedAddressUpdate(ctx context.Context, d *schema.ResourceData, m i
 			fixedAddress.ExtensibleAttributes = &eas
 		}
 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+			if fixedAddress.ExtensibleAttributes == nil {
+				fixedAddress.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+			}
 			for k, v := range *client.OrchestratorEAs {
 				(*fixedAddress.ExtensibleAttributes)[k] = v
 			}

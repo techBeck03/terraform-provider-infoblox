@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/techBeck03/infoblox-go-sdk"
+	"github.com/tidwall/gjson"
 )
 
 func prettyPrint(object interface{}) {
@@ -43,7 +44,7 @@ func Keys(m map[string]interface{}) []string {
 	return keys
 }
 
-func createExtensibleAttributesFromJSON(client *infoblox.Client, eaMap map[string]interface{}) (eas infoblox.ExtensibleAttribute, err error) {
+func createExtensibleAttributesFromJSON(eaMap map[string]interface{}) (eas infoblox.ExtensibleAttribute, err error) {
 	eas = infoblox.ExtensibleAttribute{}
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,30 +59,56 @@ func createExtensibleAttributesFromJSON(client *infoblox.Client, eaMap map[strin
 		}
 	}()
 	for k, v := range eaMap {
-		var eaValue infoblox.ExtensibleAttributeJSONMapValue
-		json.Unmarshal([]byte(v.(string)), &eaValue)
+		parsed := gjson.Parse(v.(string))
 		var ea infoblox.ExtensibleAttributeValue
-		switch eaValue.Type {
+		switch parsed.Get("type").Str {
 		case "STRING":
-			ea.Value = eaValue.Value.(string)
+			ea.Value = parsed.Get("value").Str
 		case "ENUM":
-			ea.Value = eaValue.Value.(string)
+			ea.Value = parsed.Get("value").Str
 		case "EMAIL":
-			ea.Value = eaValue.Value.(string)
+			ea.Value = parsed.Get("value").Str
 		case "URL":
-			ea.Value = eaValue.Value.(string)
+			ea.Value = parsed.Get("value").Str
 		case "DATE":
-			ea.Value = eaValue.Value.(string)
+			ea.Value = parsed.Get("value").Str
 		case "INTEGER":
-			ea.Value = eaValue.Value.(int)
+			ea.Value = parsed.Get("value").Int()
 		}
-		if strings.Contains(v.(string), "inheritance_source") {
-			ea.InheritanceSource = eaValue.InheritanceSource
+		if parsed.Get("inheritance_source").Exists() {
+			var inheritanceSource infoblox.InheritanceSource
+			json.Unmarshal([]byte(parsed.Get("inheritance_source").String()), &inheritanceSource)
+			ea.InheritanceSource = &inheritanceSource
 		}
+		ea.InheritanceOperation = parsed.Get("inheritance_operation").Str
+		if parsed.Get("descendants_action").Exists() {
+			var descendantsAction infoblox.DescendantsAction
+			json.Unmarshal([]byte(parsed.Get("descendants_action").String()), &descendantsAction)
+			ea.DescendantsAction = &descendantsAction
+		}
+
 		eas[k] = ea
 	}
 
 	return eas, err
+}
+
+func handleExtenisbleAttributesInheritanceValues(eas *infoblox.ExtensibleAttribute, d *schema.ResourceData) (infoblox.ExtensibleAttribute, error) {
+	eaMap := d.Get("extensible_attributes").(map[string]interface{})
+	configuredEAs, err := createExtensibleAttributesFromJSON(eaMap)
+	newEas := make(infoblox.ExtensibleAttribute)
+	if err != nil {
+		return newEas, err
+	}
+	for k, v := range *eas {
+		if ea, ok := configuredEAs[k]; ok {
+			v.DescendantsAction = ea.DescendantsAction
+			v.InheritanceOperation = ea.InheritanceOperation
+		}
+		newEas[k] = v
+	}
+
+	return newEas, nil
 }
 
 func isEmpty(object interface{}) bool {
