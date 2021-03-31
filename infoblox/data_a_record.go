@@ -125,6 +125,22 @@ func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interf
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided hostname did not match any A records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided hostname matched multiple A records when one was expected",
+				})
+				return diags
+			}
 			record = r[0]
 		} else if dns_name, ok := d.GetOk("dns_name"); ok {
 			resolvedQueryParams["dns_name"] = dns_name.(string)
@@ -132,12 +148,44 @@ func dataSourceARecordRead(ctx context.Context, d *schema.ResourceData, m interf
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided DNS name did not match any A records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided DNS name matched multiple A records when one was expected",
+				})
+				return diags
+			}
 			record = r[0]
 		} else if ip_address, ok := d.GetOk("ip_address"); ok {
 			resolvedQueryParams["ipv4addr"] = ip_address.(string)
 			r, err := client.GetARecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
+			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided IP address did not match any A records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided IP address matched multiple A records when one was expected",
+				})
+				return diags
 			}
 			record = r[0]
 		}

@@ -11,12 +11,14 @@ import (
 )
 
 var (
-	hostRecordDomainName       = os.Getenv("INFOBLOX_DOMAIN")
-	hostRecordHostnameCreate   = fmt.Sprintf("infoblox-test-host.%s", hostRecordDomainName)
-	hostRecordHostnameUpdate   = fmt.Sprintf("infoblox-test-host-update.%s", hostRecordDomainName)
-	hostRecordIPAddressStatic  string
-	hostRecordIPAddressNetwork string
-	hostRecordIPAddressRange   string
+	hostRecordDomainName            = os.Getenv("INFOBLOX_DOMAIN")
+	hostRecordHostnameCreateStatic  = fmt.Sprintf("infoblox-test-host-static.%s", hostRecordDomainName)
+	hostRecordHostnameUpdateStatic  = fmt.Sprintf("infoblox-test-host-static-update.%s", hostRecordDomainName)
+	hostRecordHostnameCreateNetwork = fmt.Sprintf("infoblox-test-host-network.%s", hostRecordDomainName)
+	hostRecordHostnameUpdateNetwork = fmt.Sprintf("infoblox-test-host-network-update.%s", hostRecordDomainName)
+	hostRecordIPAddressStatic       string
+	hostRecordIPAddressNetwork      string
+	hostRecordIPAddressRange        string
 )
 
 func TestAccInfobloxHostRecordBasic(t *testing.T) {
@@ -26,25 +28,24 @@ func TestAccInfobloxHostRecordBasic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxNetworkCreate(), testAccCheckInfobloxHostRecordCreateStatic(), testAccCheckInfobloxHostRecordCreateFromNetwork(), testAccCheckInfobloxHostRecordCreateFromRange(), testAccCheckInfobloxRangeCreateStatic()),
-				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxNetworkCreate(), testAccCheckInfobloxHostRecordCreateStatic()),
+				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxNetworkCreate(), testAccCheckInfobloxHostRecordCreateStatic(), testAccCheckInfobloxHostRecordCreateFromNetwork()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxHostRecordExists("infoblox_network.new"),
 					testAccCheckInfobloxHostRecordExists("infoblox_host_record.static"),
-					resource.TestCheckResourceAttr("infoblox_host_record.static", "hostname", hostRecordHostnameCreate),
+					resource.TestCheckResourceAttr("infoblox_host_record.static", "hostname", hostRecordHostnameCreateStatic),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "ip_v4_address.0.ip_address", hostRecordIPAddressStatic),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "comment", "test host record"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "enable_dns", "true"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "ip_address", hostRecordIPAddressNetwork),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "hostname", "hostRecord-test"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "comment", "test fixed address"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "match_client", "RESERVED"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "disable", "true"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "hostname", hostRecordHostnameCreateNetwork),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "ip_v4_address.0.ip_address", hostRecordIPAddressNetwork),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "comment", "test host record"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "enable_dns", "true"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 					// resource.TestCheckResourceAttr("infoblox_host_record.range", "ip_address", hostRecordIPAddressRange),
 					// resource.TestCheckResourceAttr("infoblox_host_record.range", "hostname", "hostRecord-test"),
 					// resource.TestCheckResourceAttr("infoblox_host_record.range", "comment", "test fixed address"),
@@ -57,25 +58,24 @@ func TestAccInfobloxHostRecordBasic(t *testing.T) {
 			},
 			{
 				// Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxNetworkCreate(), testAccCheckInfobloxHostRecordUpdateStatic(), testAccCheckInfobloxHostRecordUpdateFromNetwork(), testAccCheckInfobloxHostRecordUpdateFromRange(), testAccCheckInfobloxRangeCreateStatic()),
-				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxNetworkCreate(), testAccCheckInfobloxHostRecordUpdateStatic()),
+				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxNetworkCreate(), testAccCheckInfobloxHostRecordUpdateStatic(), testAccCheckInfobloxHostRecordUpdateFromNetwork()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxHostRecordExists("infoblox_network.new"),
 					testAccCheckInfobloxHostRecordExists("infoblox_host_record.static"),
-					resource.TestCheckResourceAttr("infoblox_host_record.static", "hostname", hostRecordHostnameUpdate),
+					resource.TestCheckResourceAttr("infoblox_host_record.static", "hostname", hostRecordHostnameUpdateStatic),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "ip_v4_address.0.ip_address", hostRecordIPAddressStatic),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "comment", "test host record update"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "enable_dns", "true"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "extensible_attributes.Location", "{\"value\":\"CollegeStation2\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins2\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_host_record.static", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "ip_address", hostRecordIPAddressNetwork),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "hostname", "hostRecord-test-update"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "comment", "test fixed address update"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "match_client", "RESERVED"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "disable", "false"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Location", "{\"value\":\"CollegeStation2\",\"type\":\"STRING\"}"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins2\",\"type\":\"STRING\"}"),
-					// resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "hostname", hostRecordHostnameUpdateNetwork),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "ip_v4_address.0.ip_address", hostRecordIPAddressNetwork),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "comment", "test host record update"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "enable_dns", "true"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Location", "{\"value\":\"CollegeStation2\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins2\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("infoblox_host_record.network", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 					// resource.TestCheckResourceAttr("infoblox_host_record.range", "ip_address", hostRecordIPAddressRange),
 					// resource.TestCheckResourceAttr("infoblox_host_record.range", "hostname", "hostRecord-test-update"),
 					// resource.TestCheckResourceAttr("infoblox_host_record.range", "comment", "test fixed address update"),
@@ -123,7 +123,7 @@ func testAccCheckInfobloxHostRecordCreateStatic() string {
     extensible_attributes = {
       Owner = jsonencode({
         value = "leroyjenkins",
-        type  = "STRING"
+        type  = "STRING",
       })
       Location = jsonencode({
         value = "CollegeStation",
@@ -131,7 +131,7 @@ func testAccCheckInfobloxHostRecordCreateStatic() string {
       })
     }
   }
-  `, hostRecordHostnameCreate, hostRecordIPAddressStatic)
+  `, hostRecordHostnameCreateStatic, hostRecordIPAddressStatic)
 }
 
 func testAccCheckInfobloxHostRecordUpdateStatic() string {
@@ -159,67 +159,63 @@ func testAccCheckInfobloxHostRecordUpdateStatic() string {
       })
     }
   }
-  `, hostRecordHostnameUpdate, hostRecordIPAddressStatic)
+  `, hostRecordHostnameUpdateStatic, hostRecordIPAddressStatic)
 }
 
 func testAccCheckInfobloxHostRecordCreateFromNetwork() string {
 	networkIPAddress, _ := ipmath.NewIP(os.Getenv("INFOBLOX_TEST_NETWORK"))
 	networkIPAddress.Add(1)
 	hostRecordIPAddressNetwork = networkIPAddress.ToIPString()
-	return `
-resource "infoblox_host_record" "network" {
-  hostname          = "hostRecord-test"
-  cidr              = infoblox_network.new.cidr
-	comment           = "test fixed address"
-  disable           = true
-	match_client      = "RESERVED"
-	restart_if_needed = true
-	grid_ref          = data.infoblox_grid.grid.ref
-	member {
-	  hostname = data.infoblox_grid_member.member.hostname
-	}
-	extensible_attributes = {
-	  Owner = jsonencode({
-		value = "leroyjenkins",
-		type  = "STRING"
-	  })
-	  Location = jsonencode({
-		value = "CollegeStation",
-		type  = "STRING"
-	  })
-	}
-}
-`
+	return fmt.Sprintf(`
+  resource "infoblox_host_record" "network" {
+    depends_on = [ infoblox_network.new ]
+    hostname   = "%s"
+    comment    = "test host record"
+    enable_dns = true
+    ip_v4_address {
+      network    = infoblox_network.new.cidr
+      use_for_ea_inheritance = true
+    }
+    extensible_attributes = {
+      Owner = jsonencode({
+        value = "leroyjenkins",
+        type  = "STRING",
+      })
+      Location = jsonencode({
+        value = "CollegeStation",
+        type  = "STRING"
+      })
+    }
+  }
+`, hostRecordHostnameCreateNetwork)
 }
 
 func testAccCheckInfobloxHostRecordUpdateFromNetwork() string {
 	networkIPAddress, _ := ipmath.NewIP(os.Getenv("INFOBLOX_TEST_NETWORK"))
 	networkIPAddress.Add(1)
 	hostRecordIPAddressNetwork = networkIPAddress.ToIPString()
-	return `
-resource "infoblox_host_record" "network" {
-  hostname          = "hostRecord-test-update"
-  cidr              = infoblox_network.new.cidr
-	comment           = "test fixed address update"
-  disable           = false
-	match_client      = "RESERVED"
-	restart_if_needed = true
-	grid_ref          = data.infoblox_grid.grid.ref
-	member {
-	  hostname = data.infoblox_grid_member.member.hostname
-	}
-	extensible_attributes = {
-	  Owner = jsonencode({
-		value = "leroyjenkins2",
-		type  = "STRING"
-	  })
-	  Location = jsonencode({
-		value = "CollegeStation2",
-		type  = "STRING"
-	  })
-	}
-}
-`
+	return fmt.Sprintf(`
+  resource "infoblox_host_record" "network" {
+    depends_on = [ infoblox_network.new ]
+    hostname   = "%s"
+    comment    = "test host record update"
+    enable_dns = true
+    ip_v4_address {
+      network    = infoblox_network.new.cidr
+      use_for_ea_inheritance = true
+    }
+    extensible_attributes = {
+      Owner = jsonencode({
+        value = "leroyjenkins2",
+        type  = "STRING"
+      })
+      Location = jsonencode({
+        value = "CollegeStation2",
+        type  = "STRING"
+      })
+    }
+  }
+`, hostRecordHostnameUpdateNetwork)
 }
 
 func testAccCheckInfobloxHostRecordCreateFromRange() string {

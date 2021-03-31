@@ -156,11 +156,19 @@ func dataSourceHostRecordRead(ctx context.Context, d *schema.ResourceData, m int
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
+		if r == nil || len(r) == 0 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "No results found",
+				Detail:   "The provided hostname did not match any record hosts",
+			})
+			return diags
+		}
 		if len(r) > 1 {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Multiple data results found",
-				Detail:   "The provided hostname matched multiple record hosts",
+				Detail:   "The provided hostname matched multiple record hosts when one was expected",
 			})
 			return diags
 		}

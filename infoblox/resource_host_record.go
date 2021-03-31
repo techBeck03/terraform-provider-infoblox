@@ -13,9 +13,9 @@ import (
 
 var (
 	hostRecordRequiredIPFields = []string{
-		"network",
-		"ip_v4_address",
-		"range_function_string",
+		"ip_v4_address.*.network",
+		"ip_v4_address.*.ip_address",
+		"ip_v4_address.*.range_function_string",
 	}
 )
 
@@ -30,6 +30,7 @@ func resourceHostRecord() *schema.Resource {
 		// },
 		CustomizeDiff: customdiff.Sequence(
 			makeEACustomDiff("extensible_attributes"),
+			hostRecordAddressDiff,
 		),
 		Schema: map[string]*schema.Schema{
 			"comment": {
@@ -62,36 +63,30 @@ func resourceHostRecord() *schema.Resource {
 				Required:    true,
 			},
 			"ip_v4_address": {
-				Type:          schema.TypeSet,
-				Description:   "IPv4 addresses associated with host record.",
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"network", "range_function_string"},
-				AtLeastOneOf:  hostRecordRequiredIPFields,
+				Type:        schema.TypeSet,
+				Description: "IPv4 addresses associated with host record.",
+				Optional:    true,
+				Computed:    true,
+				MinItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ref": {
-							Type:        schema.TypeString,
-							Description: "Reference id of address object.",
+						"configure_for_dhcp": {
+							Type:        schema.TypeBool,
+							Description: "Set this to True to enable the DHCP configuration for this host address.",
+							Optional:    true,
 							Computed:    true,
-						},
-						"ip_address": {
-							Type:             schema.TypeString,
-							Description:      "IP address.",
-							Required:         true,
-							ForceNew:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 						},
 						"hostname": {
 							Type:        schema.TypeString,
 							Description: "Hostname associated with IP address.",
 							Computed:    true,
 						},
-						"network": {
-							Type:        schema.TypeString,
-							Description: "Network associated with IP address.",
-							Optional:    true,
-							Computed:    true,
+						"ip_address": {
+							Type:             schema.TypeString,
+							Description:      "IP address.",
+							Optional:         true,
+							ForceNew:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 						},
 						"mac_address": {
 							Type:        schema.TypeString,
@@ -99,10 +94,24 @@ func resourceHostRecord() *schema.Resource {
 							Optional:    true,
 							Computed:    true,
 						},
-						"configure_for_dhcp": {
-							Type:        schema.TypeBool,
-							Description: "Set this to True to enable the DHCP configuration for this host address.",
+						"network": {
+							Type:             schema.TypeString,
+							Description:      "Network for host record in CIDR notation (next_available_ip will be retrieved from this network).",
+							Optional:         true,
+							Computed:         true,
+							ForceNew:         true,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
+						},
+						"range_function_string": {
+							Type:        schema.TypeString,
+							Description: "Range start and end string for next_available_ip function calls.",
 							Optional:    true,
+							Computed:    true,
+							ForceNew:    true,
+						},
+						"ref": {
+							Type:        schema.TypeString,
+							Description: "Reference id of address object.",
 							Computed:    true,
 						},
 						"use_for_ea_inheritance": {
@@ -114,29 +123,12 @@ func resourceHostRecord() *schema.Resource {
 					},
 				},
 			},
-			"network": {
-				Type:             schema.TypeString,
-				Description:      "Network for host record in CIDR notation (next_available_ip will be retrieved from this network).",
-				Optional:         true,
-				ForceNew:         true,
-				ConflictsWith:    []string{"ip_v4_address", "range_function_string"},
-				AtLeastOneOf:     hostRecordRequiredIPFields,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
-			},
 			"network_view": {
 				Type:        schema.TypeString,
 				Description: "The name of the network view in which the host record resides.",
 				ForceNew:    true,
 				Optional:    true,
 				Computed:    true,
-			},
-			"range_function_string": {
-				Type:          schema.TypeString,
-				Description:   "Range start and end string for next_available_ip function calls.",
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"ip_v4_address", "network"},
-				AtLeastOneOf:  hostRecordRequiredIPFields,
 			},
 			"ref": {
 				Type:        schema.TypeString,
@@ -170,13 +162,22 @@ func convertHostRecordToResourceData(client *infoblox.Client, d *schema.Resource
 	d.Set("view", record.View)
 	d.Set("zone", record.Zone)
 
+	configuredAddressList := d.Get("ip_v4_address").(*schema.Set).List()
 	var ipAddressList []map[string]interface{}
 	for _, address := range record.IPv4Addrs {
+		var configuredIndex int
+		for i, v := range configuredAddressList {
+			addr := v.(map[string]interface{})["ip_address"].(string)
+			if addr == address.IPAddress {
+				configuredIndex = i
+			}
+		}
 		ipAddressList = append(ipAddressList, map[string]interface{}{
 			"ref":                    address.Ref,
 			"ip_address":             address.IPAddress,
 			"hostname":               address.Host,
-			"network":                address.CIDR,
+			"network":                configuredAddressList[configuredIndex].(map[string]interface{})["network"].(string),
+			"range_function_string":  configuredAddressList[configuredIndex].(map[string]interface{})["range_function_string"].(string),
 			"mac_address":            address.Mac,
 			"configure_for_dhcp":     address.ConfigureForDHCP,
 			"use_for_ea_inheritance": address.UseForEAInheritance,
@@ -200,7 +201,6 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 
 	record.Hostname = d.Get("hostname").(string)
 	record.Comment = d.Get("comment").(string)
-	network := d.Get("network").(string)
 	record.EnableDNS = newBool(d.Get("enable_dns").(bool))
 	record.NetworkView = d.Get("network_view").(string)
 	record.View = d.Get("view").(string)
@@ -208,31 +208,24 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 
 	ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
 	record.IPv4Addrs = []infoblox.IPv4Addr{}
-	if len(ipAddressList) == 0 {
-		if _, ok := d.GetOk("network"); ok && network != "" {
-			record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
-				IPAddress: fmt.Sprintf("func:nextavailableip:%s", network),
-			})
-		} else {
-			rangeFunctionString := d.Get("range_function_string")
-			record.IPv4Addrs = append(record.IPv4Addrs, infoblox.IPv4Addr{
-				IPAddress: fmt.Sprintf("func:nextavailableip:%s", rangeFunctionString),
-			})
-		}
-	} else {
-		for _, address := range ipAddressList {
-			var ipv4Addr infoblox.IPv4Addr
+	for _, address := range ipAddressList {
+		var ipv4Addr infoblox.IPv4Addr
+		if address.(map[string]interface{})["ip_address"].(string) != "" {
 			ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)
-			if address.(map[string]interface{})["hostname"] != "" {
-				ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
-			}
-			ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
-			ipv4Addr.UseForEAInheritance = newBool(address.(map[string]interface{})["use_for_ea_inheritance"].(bool))
-			if address.(map[string]interface{})["mac_address"].(string) != "" {
-				ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
-			}
-			record.IPv4Addrs = append(record.IPv4Addrs, ipv4Addr)
+		} else if address.(map[string]interface{})["network"].(string) != "" {
+			ipv4Addr.IPAddress = fmt.Sprintf("func:nextavailableip:%s", address.(map[string]interface{})["network"].(string))
+		} else if address.(map[string]interface{})["range_function_string"].(string) != "" {
+			ipv4Addr.IPAddress = fmt.Sprintf("func:nextavailableip:%s", address.(map[string]interface{})["range_function_string"].(string))
 		}
+		if address.(map[string]interface{})["hostname"] != "" {
+			ipv4Addr.Host = address.(map[string]interface{})["hostname"].(string)
+		}
+		ipv4Addr.ConfigureForDHCP = newBool(address.(map[string]interface{})["configure_for_dhcp"].(bool))
+		ipv4Addr.UseForEAInheritance = newBool(address.(map[string]interface{})["use_for_ea_inheritance"].(bool))
+		if address.(map[string]interface{})["mac_address"].(string) != "" {
+			ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
+		}
+		record.IPv4Addrs = append(record.IPv4Addrs, ipv4Addr)
 	}
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
@@ -362,36 +355,37 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 	if d.HasChange("extensible_attributes") {
 		old, new := d.GetChange("extensible_attributes")
-		oldEAs := old.(map[string]interface{})
-		newEAs := new.(map[string]interface{})
-		removeEAs := sliceDiff(Keys(oldEAs), Keys(newEAs), false)
+		oldKeys := Keys(old.(map[string]interface{}))
+		oldEAs, err := createExtensibleAttributesFromJSON(old.(map[string]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		newKeys := Keys(new.(map[string]interface{}))
+		newEAs, err := createExtensibleAttributesFromJSON(new.(map[string]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		removeEAs := sliceDiff(oldKeys, newKeys, false)
 		if len(removeEAs) > 0 {
-			convertedEAs, err := createExtensibleAttributesFromJSON(oldEAs)
-			if err != nil {
-				return diag.FromErr(err)
-			}
 			record.ExtensibleAttributesRemove = &infoblox.ExtensibleAttribute{}
 			for _, v := range removeEAs {
-				(*record.ExtensibleAttributesRemove)[v] = convertedEAs[v]
+				(*record.ExtensibleAttributesRemove)[v] = oldEAs[v]
 			}
 		}
-		addEAs := sliceDiff(Keys(newEAs), Keys(oldEAs), false)
-		if len(addEAs) > 0 {
-			convertedEAs, err := createExtensibleAttributesFromJSON(newEAs)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			record.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
-			for _, v := range addEAs {
-				(*record.ExtensibleAttributesAdd)[v] = convertedEAs[v]
+		for k, v := range newEAs {
+			if !Contains(oldKeys, k) || (Contains(oldKeys, k) && v.Value != oldEAs[k].Value) {
+				if record.ExtensibleAttributesAdd == nil {
+					record.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
+				}
+				(*record.ExtensibleAttributesAdd)[k] = v
 			}
 		}
 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
-			if record.ExtensibleAttributes == nil {
-				record.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+			if record.ExtensibleAttributesAdd == nil {
+				record.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
 			}
 			for k, v := range *client.OrchestratorEAs {
-				(*record.ExtensibleAttributes)[k] = v
+				(*record.ExtensibleAttributesAdd)[k] = v
 			}
 		}
 	}

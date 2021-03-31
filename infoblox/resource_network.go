@@ -193,11 +193,7 @@ func convertNetworkToResourceData(client *infoblox.Client, d *schema.ResourceDat
 
 	d.Set("option", optionList)
 
-	modifiedEAs, err := handleExtenisbleAttributesInheritanceValues(network.ExtensibleAttributes, d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	eas, err := client.ConvertEAsToJSONString(modifiedEAs)
+	eas, err := client.ConvertEAsToJSONString(*network.ExtensibleAttributes)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	} else {
@@ -380,22 +376,39 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 	}
-	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
-		eaMap := extensibleAttributes.(map[string]interface{})
-		if len(eaMap) > 0 {
-			eas, err := createExtensibleAttributesFromJSON(eaMap)
-			if err != nil {
-				diags = append(diags, diag.FromErr(err)...)
-				return diags
+	if d.HasChange("extensible_attributes") {
+		old, new := d.GetChange("extensible_attributes")
+		oldKeys := Keys(old.(map[string]interface{}))
+		oldEAs, err := createExtensibleAttributesFromJSON(old.(map[string]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		newKeys := Keys(new.(map[string]interface{}))
+		newEAs, err := createExtensibleAttributesFromJSON(new.(map[string]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		removeEAs := sliceDiff(oldKeys, newKeys, false)
+		if len(removeEAs) > 0 {
+			network.ExtensibleAttributesRemove = &infoblox.ExtensibleAttribute{}
+			for _, v := range removeEAs {
+				(*network.ExtensibleAttributesRemove)[v] = oldEAs[v]
 			}
-			network.ExtensibleAttributes = &eas
+		}
+		for k, v := range newEAs {
+			if !Contains(oldKeys, k) || (Contains(oldKeys, k) && v.Value != oldEAs[k].Value) {
+				if network.ExtensibleAttributesAdd == nil {
+					network.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
+				}
+				(*network.ExtensibleAttributesAdd)[k] = v
+			}
 		}
 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
-			if network.ExtensibleAttributes == nil {
-				network.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+			if network.ExtensibleAttributesAdd == nil {
+				network.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
 			}
 			for k, v := range *client.OrchestratorEAs {
-				(*network.ExtensibleAttributes)[k] = v
+				(*network.ExtensibleAttributesAdd)[k] = v
 			}
 		}
 	}

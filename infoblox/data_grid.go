@@ -96,7 +96,14 @@ func dataSourceGridRead(ctx context.Context, d *schema.ResourceData, m interface
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
+		if grids == nil || len(grids) == 0 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "No results found",
+				Detail:   "The provided name did not match any grids",
+			})
+			return diags
+		}
 		if len(grids) > 1 {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,

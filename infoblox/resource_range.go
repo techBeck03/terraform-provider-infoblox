@@ -528,22 +528,39 @@ func resourceRangeUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		}
 	}
 
-	if extensibleAttributes, ok := d.GetOk("extensible_attributes"); ok {
-		eaMap := extensibleAttributes.(map[string]interface{})
-		if len(eaMap) > 0 {
-			eas, err := createExtensibleAttributesFromJSON(eaMap)
-			if err != nil {
-				diags = append(diags, diag.FromErr(err)...)
-				return diags
+	if d.HasChange("extensible_attributes") {
+		old, new := d.GetChange("extensible_attributes")
+		oldKeys := Keys(old.(map[string]interface{}))
+		oldEAs, err := createExtensibleAttributesFromJSON(old.(map[string]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		newKeys := Keys(new.(map[string]interface{}))
+		newEAs, err := createExtensibleAttributesFromJSON(new.(map[string]interface{}))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		removeEAs := sliceDiff(oldKeys, newKeys, false)
+		if len(removeEAs) > 0 {
+			addressRange.ExtensibleAttributesRemove = &infoblox.ExtensibleAttribute{}
+			for _, v := range removeEAs {
+				(*addressRange.ExtensibleAttributesRemove)[v] = oldEAs[v]
 			}
-			addressRange.ExtensibleAttributes = &eas
+		}
+		for k, v := range newEAs {
+			if !Contains(oldKeys, k) || (Contains(oldKeys, k) && v.Value != oldEAs[k].Value) {
+				if addressRange.ExtensibleAttributesAdd == nil {
+					addressRange.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
+				}
+				(*addressRange.ExtensibleAttributesAdd)[k] = v
+			}
 		}
 		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
-			if addressRange.ExtensibleAttributes == nil {
-				addressRange.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+			if addressRange.ExtensibleAttributesAdd == nil {
+				addressRange.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
 			}
 			for k, v := range *client.OrchestratorEAs {
-				(*addressRange.ExtensibleAttributes)[k] = v
+				(*addressRange.ExtensibleAttributesAdd)[k] = v
 			}
 		}
 	}

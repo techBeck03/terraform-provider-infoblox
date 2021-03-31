@@ -182,6 +182,14 @@ func dataSourceRangeRead(ctx context.Context, d *schema.ResourceData, m interfac
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		if r == nil || len(r) == 0 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "No results found",
+				Detail:   "The provided cidr, start_addr, end_addr did not match any range",
+			})
+			return diags
+		}
 		if len(r) > 1 {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,

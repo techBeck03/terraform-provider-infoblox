@@ -131,6 +131,22 @@ func dataSourceCNameRecordRead(ctx context.Context, d *schema.ResourceData, m in
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided hostname did not match any CNAME records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided hostname matched multiple CNAME records when one was expected",
+				})
+				return diags
+			}
 			record = r[0]
 		} else if canonical, ok := d.GetOk("canonical"); ok {
 			resolvedQueryParams["canonical"] = canonical.(string)
@@ -138,12 +154,44 @@ func dataSourceCNameRecordRead(ctx context.Context, d *schema.ResourceData, m in
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided canonical name did not match any CNAME records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided canonical name matched multiple CNAME records when one was expected",
+				})
+				return diags
+			}
 			record = r[0]
 		} else if dns_name, ok := d.GetOk("dns_name"); ok {
 			resolvedQueryParams["dns_name"] = dns_name.(string)
 			r, err := client.GetCNameRecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
+			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided DNS name did not match any CNAME records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided DNS name matched multiple CNAME records when one was expected",
+				})
+				return diags
 			}
 			record = r[0]
 		}

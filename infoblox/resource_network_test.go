@@ -102,7 +102,7 @@ resource "infoblox_network" "new" {
 	extensible_attributes = {
 	  Owner = jsonencode({
 		value = "leroyjenkins",
-		type  = "STRING"
+		type  = "STRING",
 	  })
 	  Location = jsonencode({
 		value = "CollegeStation",

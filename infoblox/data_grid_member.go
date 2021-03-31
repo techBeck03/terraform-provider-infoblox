@@ -86,6 +86,14 @@ func dataSourceGridMemberRead(ctx context.Context, d *schema.ResourceData, m int
 			return diag.FromErr(err)
 		}
 
+		if members == nil || len(members) == 0 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "No results found",
+				Detail:   "The provided hostname did not match any grid members",
+			})
+			return diags
+		}
 		if len(members) > 1 {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -94,7 +102,6 @@ func dataSourceGridMemberRead(ctx context.Context, d *schema.ResourceData, m int
 			})
 			return diags
 		}
-
 		member = members[0]
 	}
 

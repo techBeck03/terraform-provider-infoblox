@@ -50,7 +50,7 @@ func validateEa(i interface{}, p cty.Path) (diags diag.Diagnostics) {
 				diags = append(diags, check...)
 			}
 		}
-		if parsed.Get("inheritance_operation").Exists() && !stringInSlice(validInheritanceOperations, []string{parsed.Get("inheritance_operation").String()}, key).HasError() {
+		if parsed.Get("inheritance_operation").Exists() && stringInSlice(validInheritanceOperations, []string{parsed.Get("inheritance_operation").String()}, key).HasError() {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  fmt.Sprintf("Invalid value for extensible attribute: %s", key),

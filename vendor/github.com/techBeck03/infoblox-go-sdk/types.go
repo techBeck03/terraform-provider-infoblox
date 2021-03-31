@@ -67,14 +67,22 @@ type ExtensibleAttributeJSONMapValue struct {
 
 // Network object
 type Network struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	NetworkView          string               `json:"network_view,omitempty"`
-	CIDR                 string               `json:"network,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
-	Comment              string               `json:"comment,omitempty"`
-	DisableDHCP          *bool                `json:"disable,omitempty"`
-	Members              []Member             `json:"members,omitempty"`
-	Options              []Option             `json:"options,omitempty"`
+	Ref                        string               `json:"_ref,omitempty"`
+	NetworkView                string               `json:"network_view,omitempty"`
+	CIDR                       string               `json:"network,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	DisableDHCP                *bool                `json:"disable,omitempty"`
+	Members                    []Member             `json:"members,omitempty"`
+	Options                    []Option             `json:"options,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
+}
+
+// NetworkQueryResult object
+type NetworkQueryResult struct {
+	NextPageID string    `json:"next_page_id,omitempty"`
+	Results    []Network `json:"result,omitempty"`
 }
 
 // Member defines grid members
@@ -131,6 +139,12 @@ type HostRecord struct {
 	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
 }
 
+// HostRecordQueryResult object
+type HostRecordQueryResult struct {
+	NextPageID string       `json:"next_page_id,omitempty"`
+	Results    []HostRecord `json:"result,omitempty"`
+}
+
 // IPv4Addr object
 type IPv4Addr struct {
 	Ref                 string                 `json:"_ref,omitempty"`
@@ -150,17 +164,25 @@ type IPv4Addr struct {
 
 // FixedAddress object
 type FixedAddress struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	NetworkView          string               `json:"network_view,omitempty"`
-	CIDR                 string               `json:"network,omitempty"`
-	Comment              string               `json:"comment,omitempty"`
-	Disable              *bool                `json:"disable,omitempty"`
-	IPAddress            string               `json:"ipv4addr,omitempty"`
-	Mac                  string               `json:"mac,omitempty"`
-	Hostname             string               `json:"name,omitempty"`
-	MatchClient          string               `json:"match_client,omitempty"`
-	Options              []Option             `json:"options,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
+	Ref                        string               `json:"_ref,omitempty"`
+	NetworkView                string               `json:"network_view,omitempty"`
+	CIDR                       string               `json:"network,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	Disable                    *bool                `json:"disable,omitempty"`
+	IPAddress                  string               `json:"ipv4addr,omitempty"`
+	Mac                        string               `json:"mac,omitempty"`
+	Hostname                   string               `json:"name,omitempty"`
+	MatchClient                string               `json:"match_client,omitempty"`
+	Options                    []Option             `json:"options,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
+}
+
+// FixedAddressQueryResult object
+type FixedAddressQueryResult struct {
+	NextPageID string         `json:"next_page_id,omitempty"`
+	Results    []FixedAddress `json:"result,omitempty"`
 }
 
 // IPv4Address object
@@ -208,16 +230,18 @@ func (aq *AddressQuery) fillDefaults() {
 
 // Range object
 type Range struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	Comment              string               `json:"comment,omitempty"`
-	DisableDHCP          *bool                `json:"disable,omitempty"`
-	StartAddress         string               `json:"start_addr,omitempty"`
-	EndAddress           string               `json:"end_addr,omitempty"`
-	NetworkView          string               `json:"network_view,omitempty"`
-	CIDR                 string               `json:"network,omitempty"`
-	Member               *Member              `json:"member,omitempty"`
-	Options              []Option             `json:"options,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
+	Ref                        string               `json:"_ref,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	DisableDHCP                *bool                `json:"disable,omitempty"`
+	StartAddress               string               `json:"start_addr,omitempty"`
+	EndAddress                 string               `json:"end_addr,omitempty"`
+	NetworkView                string               `json:"network_view,omitempty"`
+	CIDR                       string               `json:"network,omitempty"`
+	Member                     *Member              `json:"member,omitempty"`
+	Options                    []Option             `json:"options,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
 }
 
 // RangeQueryResult object
@@ -236,57 +260,89 @@ type IPsWithinRangeQuery struct {
 
 // ARecord object
 type ARecord struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	Hostname             string               `json:"name,omitempty"`
-	DNSName              string               `json:"dns_name,omitempty"`
-	IPAddress            string               `json:"ipv4addr,omitempty"`
-	Zone                 string               `json:"zone,omitempty"`
-	Comment              string               `json:"comment,omitempty"`
-	Disable              *bool                `json:"disable,omitempty"`
-	View                 string               `json:"view,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
+	Ref                        string               `json:"_ref,omitempty"`
+	Hostname                   string               `json:"name,omitempty"`
+	DNSName                    string               `json:"dns_name,omitempty"`
+	IPAddress                  string               `json:"ipv4addr,omitempty"`
+	Zone                       string               `json:"zone,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	Disable                    *bool                `json:"disable,omitempty"`
+	View                       string               `json:"view,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
 }
 
-// CName object
+// ARecordQueryResult object
+type ARecordQueryResult struct {
+	NextPageID string    `json:"next_page_id,omitempty"`
+	Results    []ARecord `json:"result,omitempty"`
+}
+
+// CNameRecord object
 type CNameRecord struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	Alias                string               `json:"name,omitempty"`
-	Canonical            string               `json:"canonical,omitempty"`
-	DNSName              string               `json:"dns_name,omitempty"`
-	Zone                 string               `json:"zone,omitempty"`
-	Comment              string               `json:"comment,omitempty"`
-	Disable              *bool                `json:"disable,omitempty"`
-	View                 string               `json:"view,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
+	Ref                        string               `json:"_ref,omitempty"`
+	Alias                      string               `json:"name,omitempty"`
+	Canonical                  string               `json:"canonical,omitempty"`
+	DNSName                    string               `json:"dns_name,omitempty"`
+	Zone                       string               `json:"zone,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	Disable                    *bool                `json:"disable,omitempty"`
+	View                       string               `json:"view,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
+}
+
+// CNameRecordQueryResult object
+type CNameRecordQueryResult struct {
+	NextPageID string        `json:"next_page_id,omitempty"`
+	Results    []CNameRecord `json:"result,omitempty"`
 }
 
 // AliasRecord object
 type AliasRecord struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	Name                 string               `json:"name,omitempty"`
-	Target               string               `json:"target_name,omitempty"`
-	TargetType           string               `json:"target_type,omitempty"`
-	DNSName              string               `json:"dns_name,omitempty"`
-	DNSTargetName        string               `json:"dns_target_name,omitempty"`
-	Zone                 string               `json:"zone,omitempty"`
-	Comment              string               `json:"comment,omitempty"`
-	Disable              *bool                `json:"disable,omitempty"`
-	View                 string               `json:"view,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
+	Ref                        string               `json:"_ref,omitempty"`
+	Name                       string               `json:"name,omitempty"`
+	Target                     string               `json:"target_name,omitempty"`
+	TargetType                 string               `json:"target_type,omitempty"`
+	DNSName                    string               `json:"dns_name,omitempty"`
+	DNSTargetName              string               `json:"dns_target_name,omitempty"`
+	Zone                       string               `json:"zone,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	Disable                    *bool                `json:"disable,omitempty"`
+	View                       string               `json:"view,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
+}
+
+// AliasRecordQueryResult object
+type AliasRecordQueryResult struct {
+	NextPageID string        `json:"next_page_id,omitempty"`
+	Results    []AliasRecord `json:"result,omitempty"`
 }
 
 // PtrRecord object
 type PtrRecord struct {
-	Ref                  string               `json:"_ref,omitempty"`
-	Name                 string               `json:"name,omitempty"`
-	PointerDomainName    string               `json:"ptrdname,omitempty"`
-	IPv4Address          string               `json:"ipv4addr,omitempty"`
-	IPv6Address          string               `json:"ipv6addr,omitempty"`
-	DNSName              string               `json:"dns_name,omitempty"`
-	DNSPointerDomainName string               `json:"dns_ptrdname,omitempty"`
-	Zone                 string               `json:"zone,omitempty"`
-	Comment              string               `json:"comment,omitempty"`
-	Disable              *bool                `json:"disable,omitempty"`
-	View                 string               `json:"view,omitempty"`
-	ExtensibleAttributes *ExtensibleAttribute `json:"extattrs"`
+	Ref                        string               `json:"_ref,omitempty"`
+	Name                       string               `json:"name,omitempty"`
+	PointerDomainName          string               `json:"ptrdname,omitempty"`
+	IPv4Address                string               `json:"ipv4addr,omitempty"`
+	IPv6Address                string               `json:"ipv6addr,omitempty"`
+	DNSName                    string               `json:"dns_name,omitempty"`
+	DNSPointerDomainName       string               `json:"dns_ptrdname,omitempty"`
+	Zone                       string               `json:"zone,omitempty"`
+	Comment                    string               `json:"comment,omitempty"`
+	Disable                    *bool                `json:"disable,omitempty"`
+	View                       string               `json:"view,omitempty"`
+	ExtensibleAttributes       *ExtensibleAttribute `json:"extattrs,omitempty"`
+	ExtensibleAttributesAdd    *ExtensibleAttribute `json:"extattrs+,omitempty"`
+	ExtensibleAttributesRemove *ExtensibleAttribute `json:"extattrs-,omitempty"`
+}
+
+// PtrRecordQueryResult object
+type PtrRecordQueryResult struct {
+	NextPageID string      `json:"next_page_id,omitempty"`
+	Results    []PtrRecord `json:"result,omitempty"`
 }

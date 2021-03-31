@@ -155,12 +155,44 @@ func dataSourcePtrRecordRead(ctx context.Context, d *schema.ResourceData, m inte
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided hostname did not match any PTR records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided hostname matched multiple PTR records when one was expected",
+				})
+				return diags
+			}
 			record = r[0]
 		} else if pointer_domain_name, ok := d.GetOk("pointer_domain_name"); ok {
 			resolvedQueryParams["ptrdname"] = pointer_domain_name.(string)
 			r, err := client.GetPtrRecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
+			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided ptrdname did not match any PTR records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided ptrdname matched multiple PTR records when one was expected",
+				})
+				return diags
 			}
 			record = r[0]
 		} else if dns_name, ok := d.GetOk("dns_name"); ok {
@@ -169,6 +201,22 @@ func dataSourcePtrRecordRead(ctx context.Context, d *schema.ResourceData, m inte
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided DNS name did not match any PTR records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided DNS name matched multiple PTR records when one was expected",
+				})
+				return diags
+			}
 			record = r[0]
 		} else if dns_pointer_domain_name, ok := d.GetOk("dns_pointer_domain_name"); ok {
 			resolvedQueryParams["dns_ptrdname"] = dns_pointer_domain_name.(string)
@@ -176,11 +224,43 @@ func dataSourcePtrRecordRead(ctx context.Context, d *schema.ResourceData, m inte
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided DNS ptrdname did not match any PTR records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided DNS ptrdname matched multiple PTR records when one was expected",
+				})
+				return diags
+			}
 			record = r[0]
 		} else {
 			r, err := client.GetPtrRecordByQuery(resolvedQueryParams)
 			if err != nil {
 				return diag.FromErr(err)
+			}
+			if r == nil || len(r) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "No results found",
+					Detail:   "The provided IP address did not match any PTR records",
+				})
+				return diags
+			}
+			if len(r) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Multiple data results found",
+					Detail:   "The provided IP address matched multiple PTR records when one was expected",
+				})
+				return diags
 			}
 			record = r[0]
 		}

@@ -139,7 +139,7 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
-	var record infoblox.Network
+	var network infoblox.Network
 
 	ref := d.Get("ref").(string)
 	cidr := d.Get("cidr").(string)
@@ -153,23 +153,31 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	if ref != "" {
-		r, err := client.GetNetworkByRef(ref, nil)
+		n, err := client.GetNetworkByRef(ref, nil)
 		if err != nil {
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
-		record = r
+		network = n
 	} else {
 		resolvedQueryParams["network"] = cidr
 		if networkView != "" {
 			resolvedQueryParams["network_view"] = networkView
 		}
-		r, err := client.GetNetworkByQuery(resolvedQueryParams)
+		n, err := client.GetNetworkByQuery(resolvedQueryParams)
 		if err != nil {
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
-		if len(r) > 1 {
+		if n == nil || len(n) == 0 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "No results found",
+				Detail:   "The provided network did not match any existing networks",
+			})
+			return diags
+		}
+		if len(n) > 1 {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  "Multiple data results found",
@@ -177,14 +185,14 @@ func dataSourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interf
 			})
 			return diags
 		}
-		record = r[0]
+		network = n[0]
 	}
 
-	check := convertNetworkToResourceData(client, d, &record)
+	check := convertNetworkToResourceData(client, d, &network)
 	if check.HasError() {
 		return check
 	}
-	d.SetId(record.Ref)
+	d.SetId(network.Ref)
 
 	return diags
 }
