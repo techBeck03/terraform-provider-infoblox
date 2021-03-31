@@ -9,7 +9,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-var aliasRecordDomainName = os.Getenv("INFOBLOX_DOMAIN")
+var (
+	aliasRecordDomainName     = os.Getenv("INFOBLOX_DOMAIN")
+	aliasRecordHostnameCreate = fmt.Sprintf("alias-infoblox-test.%s", aliasRecordDomainName)
+	aliasRecordHostnameUpdate = fmt.Sprintf("alias-infoblox-test-update.%s", aliasRecordDomainName)
+)
 
 func TestAccInfobloxAliasRecordBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -21,14 +25,24 @@ func TestAccInfobloxAliasRecordBasic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxAliasRecordExists("infoblox_a_record.new"),
 					testAccCheckInfobloxAliasRecordExists("infoblox_alias_record.new"),
-					resource.TestCheckResourceAttr("infoblox_alias_record.new", "name", fmt.Sprintf("alias-infoblox-test.%s", aliasRecordDomainName)),
-					resource.TestCheckResourceAttr("infoblox_alias_record.new", "target_name", fmt.Sprintf("infoblox-test.%s", aliasRecordDomainName)),
+					resource.TestCheckResourceAttr("infoblox_alias_record.new", "name", aliasRecordHostnameCreate),
+					resource.TestCheckResourceAttr("infoblox_alias_record.new", "target_name", aRecordHostnameCreate),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "target_type", "A"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "comment", "test alias record"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "disable", "true"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
+					testAccCheckInfobloxAliasRecordExists("data.infoblox_alias_record.hostname"),
+					testAccCheckInfobloxAliasRecordExists("data.infoblox_alias_record.ref"),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "name", aliasRecordHostnameCreate),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "target_name", aRecordHostnameCreate),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "target_type", "A"),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "comment", "test alias record"),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "disable", "true"),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("data.infoblox_alias_record.hostname", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
 			{
@@ -36,8 +50,8 @@ func TestAccInfobloxAliasRecordBasic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInfobloxAliasRecordExists("infoblox_a_record.new"),
 					testAccCheckInfobloxAliasRecordExists("infoblox_alias_record.new"),
-					resource.TestCheckResourceAttr("infoblox_alias_record.new", "name", fmt.Sprintf("aliasupdate-infoblox-test.%s", aliasRecordDomainName)),
-					resource.TestCheckResourceAttr("infoblox_alias_record.new", "target_name", fmt.Sprintf("infoblox-test.%s", aliasRecordDomainName)),
+					resource.TestCheckResourceAttr("infoblox_alias_record.new", "name", aliasRecordHostnameUpdate),
+					resource.TestCheckResourceAttr("infoblox_alias_record.new", "target_name", aRecordHostnameCreate),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "target_type", "A"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "comment", "test alias record update"),
 					resource.TestCheckResourceAttr("infoblox_alias_record.new", "disable", "false"),
@@ -68,7 +82,7 @@ func testAccCheckInfobloxAliasRecordExists(resourceName string) resource.TestChe
 
 var testAccCheckInfobloxAliasRecordCreate = fmt.Sprintf(`
 resource "infoblox_alias_record" "new"{
-	name        = "alias-infoblox-test.%s"
+	name        = "%s"
   target_name = infoblox_a_record.new.hostname
   target_type = "A"
   disable = true
@@ -84,11 +98,17 @@ resource "infoblox_alias_record" "new"{
     })
   }
 }
-`, aliasRecordDomainName)
+data "infoblox_alias_record" "hostname" {
+  name = infoblox_alias_record.new.name
+}
+data "infoblox_alias_record" "ref" {
+  ref = infoblox_alias_record.new.ref
+}
+`, aliasRecordHostnameCreate)
 
 var testAccCheckInfobloxAliasRecordUpdate = fmt.Sprintf(`
 resource "infoblox_alias_record" "new"{
-	name        = "aliasupdate-infoblox-test.%s"
+	name        = "%s"
   target_name = infoblox_a_record.new.hostname
   target_type = "A"
   disable = false
@@ -104,4 +124,4 @@ resource "infoblox_alias_record" "new"{
     })
   }
 }
-`, aliasRecordDomainName)
+`, aliasRecordHostnameUpdate)

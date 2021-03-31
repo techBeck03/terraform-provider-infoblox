@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	aRecordDomainName = os.Getenv("INFOBLOX_DOMAIN")
-	aRecordIPAddress  string
+	aRecordDomainName     = os.Getenv("INFOBLOX_DOMAIN")
+	aRecordIPAddress      string
+	aRecordHostnameCreate = fmt.Sprintf("infoblox-test-ptr.%s", aRecordDomainName)
+	aRecordHostnameUpdate = fmt.Sprintf("infoblox-test-ptr-update.%s", aRecordDomainName)
 )
 
 func TestAccInfobloxARecordBasic(t *testing.T) {
@@ -27,10 +29,19 @@ func TestAccInfobloxARecordBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "ip_address", aRecordIPAddress),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "comment", "test a record"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "disable", "true"),
-					resource.TestCheckResourceAttr("infoblox_a_record.new", "hostname", fmt.Sprintf("infoblox-test.%s", aRecordDomainName)),
+					resource.TestCheckResourceAttr("infoblox_a_record.new", "hostname", aRecordHostnameCreate),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
+					testAccCheckInfobloxARecordExists("data.infoblox_a_record.hostname"),
+					testAccCheckInfobloxARecordExists("data.infoblox_a_record.ref"),
+					resource.TestCheckResourceAttr("data.infoblox_a_record.hostname", "ip_address", aRecordIPAddress),
+					resource.TestCheckResourceAttr("data.infoblox_a_record.hostname", "comment", "test a record"),
+					resource.TestCheckResourceAttr("data.infoblox_a_record.hostname", "disable", "true"),
+					resource.TestCheckResourceAttr("data.infoblox_a_record.hostname", "hostname", aRecordHostnameCreate),
+					resource.TestCheckResourceAttr("data.infoblox_a_record.hostname", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("data.infoblox_a_record.hostname", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\"}"),
+					resource.TestCheckResourceAttr("data.infoblox_a_record.hostname", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
 			{
@@ -40,7 +51,7 @@ func TestAccInfobloxARecordBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "ip_address", aRecordIPAddress),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "comment", "test a record update"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "disable", "false"),
-					resource.TestCheckResourceAttr("infoblox_a_record.new", "hostname", fmt.Sprintf("infoblox-test2.%s", aRecordDomainName)),
+					resource.TestCheckResourceAttr("infoblox_a_record.new", "hostname", aRecordHostnameUpdate),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Location", "{\"value\":\"CollegeStation2\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins2\",\"type\":\"STRING\"}"),
 					resource.TestCheckResourceAttr("infoblox_a_record.new", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
@@ -71,23 +82,29 @@ func testAccCheckInfobloxARecordCreate() string {
 	aRecordNetworkAddress.Add(2)
 	aRecordIPAddress = aRecordNetworkAddress.ToIPString()
 	return fmt.Sprintf(`
-resource "infoblox_a_record" "new"{
-	ip_address = "%s"
-	comment    = "test a record"
-	hostname   = "infoblox-test.%s"
-	disable    = true
-	extensible_attributes = {
-	Location = jsonencode({
-		value = "CollegeStation",
-		type  = "STRING"
-	})
-	Owner = jsonencode({
-		value = "leroyjenkins",
-		type  = "STRING"
-	})
-	}
-}
-`, aRecordIPAddress, aRecordDomainName)
+  resource "infoblox_a_record" "new"{
+    ip_address = "%s"
+    comment    = "test a record"
+    hostname   = "%s"
+    disable    = true
+    extensible_attributes = {
+    Location = jsonencode({
+      value = "CollegeStation",
+      type  = "STRING"
+    })
+    Owner = jsonencode({
+      value = "leroyjenkins",
+      type  = "STRING"
+    })
+    }
+  }
+  data "infoblox_a_record" "hostname" {
+    hostname = infoblox_a_record.new.hostname
+  }
+  data "infoblox_a_record" "ref" {
+    ref = infoblox_a_record.new.ref
+  }
+`, aRecordIPAddress, aRecordHostnameCreate)
 }
 
 func testAccCheckInfobloxARecordUpdate() string {
@@ -98,7 +115,7 @@ func testAccCheckInfobloxARecordUpdate() string {
 resource "infoblox_a_record" "new"{
 	ip_address = "%s"
 	comment    = "test a record update"
-	hostname   = "infoblox-test2.%s"
+	hostname   = "%s"
 	disable    = false
 	extensible_attributes = {
 	  Location = jsonencode({
@@ -111,5 +128,5 @@ resource "infoblox_a_record" "new"{
 	  })
 	}
 }
-`, aRecordIPAddress, aRecordDomainName)
+`, aRecordIPAddress, aRecordHostnameUpdate)
 }

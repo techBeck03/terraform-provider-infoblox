@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/mileusna/conditional"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
@@ -165,7 +166,7 @@ func convertHostRecordToResourceData(client *infoblox.Client, d *schema.Resource
 	configuredAddressList := d.Get("ip_v4_address").(*schema.Set).List()
 	var ipAddressList []map[string]interface{}
 	for _, address := range record.IPv4Addrs {
-		var configuredIndex int
+		configuredIndex := -1
 		for i, v := range configuredAddressList {
 			addr := v.(map[string]interface{})["ip_address"].(string)
 			if addr == address.IPAddress {
@@ -176,8 +177,8 @@ func convertHostRecordToResourceData(client *infoblox.Client, d *schema.Resource
 			"ref":                    address.Ref,
 			"ip_address":             address.IPAddress,
 			"hostname":               address.Host,
-			"network":                configuredAddressList[configuredIndex].(map[string]interface{})["network"].(string),
-			"range_function_string":  configuredAddressList[configuredIndex].(map[string]interface{})["range_function_string"].(string),
+			"network":                conditional.String(configuredIndex != -1, configuredAddressList[configuredIndex].(map[string]interface{})["network"].(string), ""),
+			"range_function_string":  conditional.String(configuredIndex != -1, configuredAddressList[configuredIndex].(map[string]interface{})["range_function_string"].(string), ""),
 			"mac_address":            address.Mac,
 			"configure_for_dhcp":     address.ConfigureForDHCP,
 			"use_for_ea_inheritance": address.UseForEAInheritance,

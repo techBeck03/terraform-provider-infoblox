@@ -11,7 +11,6 @@ import (
 
 var (
 	dataFixedAddressRequiredSearchFields = []string{
-		"hostname",
 		"ref",
 		"ip_address",
 	}
@@ -169,35 +168,6 @@ func dataSourceFixedAddressRead(ctx context.Context, d *schema.ResourceData, m i
 				Severity: diag.Error,
 				Summary:  "Multiple data results found",
 				Detail:   "The provided IP address matched multiple fixed addresses when one was expected",
-			})
-			return diags
-		}
-		fixedAddress = f[0]
-	} else if ipAddress, ok := d.GetOk("hostname"); ok {
-		queryParams := d.Get("query_params").(map[string]interface{})
-		resolvedQueryParams := make(map[string]string)
-
-		for k, v := range queryParams {
-			resolvedQueryParams[k] = v.(string)
-		}
-		resolvedQueryParams["hostname"] = ipAddress.(string)
-		f, err := client.GetFixedAddressByQuery(resolvedQueryParams)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		if f == nil || len(f) == 0 {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "No results found",
-				Detail:   "The provided hostname did not match any fixed addresses",
-			})
-			return diags
-		}
-		if len(f) > 1 {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Multiple data results found",
-				Detail:   "The provided hostname matched multiple fixed addresses when one was expected",
 			})
 			return diags
 		}

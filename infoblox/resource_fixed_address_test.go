@@ -50,6 +50,16 @@ func TestAccInfobloxFixedAddressBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_fixed_address.range", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
 					resource.TestCheckResourceAttr("infoblox_fixed_address.range", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
 					resource.TestCheckResourceAttr("infoblox_fixed_address.range", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
+					testAccCheckInfobloxFixedAddressExists("data.infoblox_fixed_address.ref"),
+					testAccCheckInfobloxFixedAddressExists("data.infoblox_fixed_address.ip_address"),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "ip_address", fixedAddressIPAddressStatic),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "hostname", "fixedAddress-test"),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "comment", "test fixed address"),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "match_client", "RESERVED"),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "disable", "true"),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
+					resource.TestCheckResourceAttr("data.infoblox_fixed_address.ip_address", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
 			{
@@ -130,6 +140,12 @@ resource "infoblox_fixed_address" "static" {
 		type  = "STRING"
 	  })
 	}
+}
+data "infoblox_fixed_address" "ref" {
+  ref = infoblox_fixed_address.static.ref
+}
+data "infoblox_fixed_address" "ip_address" {
+  ip_address = infoblox_fixed_address.static.ip_address
 }
 `, fixedAddressIPAddressStatic)
 }
