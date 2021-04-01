@@ -20,6 +20,14 @@ var (
 		"inheritance_operation",
 		"descendants_action",
 	}
+	validEATypes = []string{
+		"STRING",
+		"ENUM",
+		"EMAIL",
+		"URL",
+		"DATE",
+		"INTEGER",
+	}
 	validInheritanceOperations = []string{
 		"INHERIT",
 		"DELETE",
@@ -49,6 +57,13 @@ func validateEa(i interface{}, p cty.Path) (diags diag.Diagnostics) {
 			if check.HasError() {
 				diags = append(diags, check...)
 			}
+		}
+		if parsed.Get("type").Exists() && stringInSlice(validEATypes, []string{parsed.Get("type").String()}, key).HasError() {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Invalid value for extensible attribute: %s", key),
+				Detail:   fmt.Sprintf("Expected `type` to be one of %s but found %s", strings.Join(validEATypes, ", "), parsed.Get("type").String()),
+			})
 		}
 		if parsed.Get("inheritance_operation").Exists() && stringInSlice(validInheritanceOperations, []string{parsed.Get("inheritance_operation").String()}, key).HasError() {
 			diags = append(diags, diag.Diagnostic{

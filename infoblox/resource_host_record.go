@@ -3,7 +3,6 @@ package infoblox
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -225,7 +224,6 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 			ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
 		}
 		record.IPv4Addrs = append(record.IPv4Addrs, ipv4Addr)
-		log.Printf("[RECORD]=======\n%+v", record)
 	}
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})

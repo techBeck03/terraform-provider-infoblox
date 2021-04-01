@@ -32,12 +32,13 @@ The following attributes are exported.
 - `extensible_attributes` - (Computed, Map) Extensible attributes of host record (Values are JSON encoded).
 - `hostname` -  (MutuallyExclusiveGroup*/Computed, String) The host name in FQDN format.
 - `ip_v4_address` - (Computed, Set of Objects) IPv4 addresses associated with host record.  Attributes for each set item:
-  - `ref` - (Computed, String) Reference id of address object.
-  - `ip_address` - (Computed, String) IP address.
-  - `hostname` - (Computed, String) Hostname associated with IP address.
-  - `network` - (Computed, String) Network associated with IP address.
-  - `mac_address` - (Computed, String) MAC address associated with IP address.
   - `configure_for_dhcp` - (Computed, Bool) Set this to True to enable the DHCP configuration for this host address.
+  - `hostname` - (Computed, String) Hostname associated with IP address.
+  - `ip_address` - (Computed, String) IP address.
+  - `mac_address` - (Computed, String) MAC address associated with IP address.
+  - `network` - (Computed, String) Network associated with IP address.
+  - `ref` - (Computed, String) Reference id of address object.
+  - `use_for_ea_inheritance` - (Computed, String) True when using this host address for EA inheritance.
 - `network_view` -  (Computed, String) The name of the network view in which this fixed address resides.
 - `query_params` - (Optional, Map) Additional query parameters used for host record query (see infoblox documentation for full list)
 - `ref` -  (MutuallyExclusiveGroup*/Computed, String) Reference id of host record object.

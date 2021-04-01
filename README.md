@@ -1,3 +1,5 @@
 # Terraform Provider Infoblox
 
-This repo is a work in progress for an infoblox terraform provider
+Please visit the Terraform registry for details on using this provider.
+
+https://registry.terraform.io/providers/techBeck03/infoblox/latest

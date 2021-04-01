@@ -18,7 +18,8 @@ resource "infoblox_host_record" "static" {
   comment    = "example host record"
   enable_dns = true
   ip_v4_address {
-    ip_address = "172.19.4.31"
+    ip_address             = "172.19.4.31"
+    use_for_ea_inheritance = true
   }
   extensible_attributes = {
     Owner = jsonencode({
@@ -39,7 +40,10 @@ resource "infoblox_host_record" "from-range" {
   hostname   = "realhost.example.com"
   comment    = "example host record"
   enable_dns = true
-  range_function_string = "172.19.4.2-172.19.4.10"
+  ip_v4_address {
+    range_function_string  = "172.19.4.2-172.19.4.10"
+    use_for_ea_inheritance = true
+  }
   extensible_attributes = {
     Owner = jsonencode({
       value = "leroyjenkins",
@@ -59,7 +63,10 @@ resource "infoblox_host_record" "from-network" {
   hostname   = "realhost.example.com"
   comment    = "example host record"
   enable_dns = true
-  network    = "172.19.4.0/24"
+  ip_v4_address {
+    network                = "172.19.4.0/24"
+    use_for_ea_inheritance = true
+  }
   extensible_attributes = {
     Owner = jsonencode({
       value = "leroyjenkins",
@@ -82,16 +89,16 @@ The following attributes are exported.
 - `enable_dns` - (Optional, Bool) When false, the host does not have parent zone information.
 - `extensible_attributes` - (Optional, Map) Extensible attributes of host record (Values are JSON encoded).
 - `hostname` -  (Required, String) The host name in FQDN format.
-- `ip_v4_address` - (MutuallyExclusiveGroup*/Computed, Set of Objects) IPv4 addresses associated with host record.  Attributes for each set item:
-  - `ref` - (Computed, String) Reference id of address object.
-  - `ip_address` - (Required, String) IP address.
-  - `hostname` - (Computed, String) Hostname associated with IP address.
-  - `network` - (Optional, String) Network associated with IP address.
-  - `mac_address` - (Optional, String) MAC address associated with IP address.
+- `ip_v4_address` - (Optional/Computed, Set of Objects) IPv4 addresses associated with host record.  Attributes for each set item:
   - `configure_for_dhcp` - (Optional, Bool) Set this to True to enable the DHCP configuration for this host address.
-- `network` - (AtLeastOneOfGroup*/Computed, String) The network to which this fixed address belongs, in IPv4 Address/CIDR format.
+  - `hostname` - (Computed, String) Hostname associated with IP address.
+  - `ip_address` - (MutuallyExclusiveGroup*/Computed, String) IP address.
+  - `mac_address` - (Optional, String) MAC address associated with IP address.
+  - `network` - (MutuallyExclusiveGroup*, String) The network to which this fixed address belongs, in IPv4 Address/CIDR format.
+  - `range_function_string` -  (MutuallyExclusiveGroup*, String) Range start and end string for next_available_ip function calls.
+  - `ref` - (Computed, String) Reference id of address object.
+  - `use_for_ea_inheritance` - (Optional, Bool) Set this to True when using this host address for EA inheritance.
 - `network_view` -  (Optional, String) The name of the network view in which this fixed address resides.
-- `range_function_string` -  (AtLeastOneOfGroup*, String) Range start and end string for next_available_ip function calls.
 - `view` - (Optional, String) The name of the DNS view in which the record resides.
 - `zone` - (Computed, String) The name of the zone in which the record resides.
 
