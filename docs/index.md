@@ -46,7 +46,7 @@ Extensible attributes are supported for all resource types within this provider 
 ```hcl
 extensible_attributes = {
   Owner = jsonencode({
-    value = "leroyjenkins",
+    value = "leeroyjenkins",
     type  = "STRING"
   })
   Location = jsonencode({
@@ -66,7 +66,7 @@ The `type` property tells the underlying go sdk how to type cast the value when 
 - `ENUM`
 - `EMAIL`
 - `URL`
-- `DATE"`
+- `DATE`
 - `INTEGER`
 
 ## Extensible Attribute Inheritance
@@ -93,7 +93,7 @@ extensible_attributes = {
 ```hcl
 extensible_attributes = {
   Owner = jsonencode({
-    value = "leroyjenkins",
+    value = "leeroyjenkins",
     type  = "STRING",
     descendants_action = jsonencode({
       option_with_ea    = "CONVERT"

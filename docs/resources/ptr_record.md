@@ -17,7 +17,7 @@ resource "infoblox_ptr_record" "ptr" {
   ip_v4_address       = "172.19.4.6"
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({

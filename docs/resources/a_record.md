@@ -18,7 +18,7 @@ resource "infoblox_a_record" "owen" {
   hostname   = "realhost.example.com"
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({

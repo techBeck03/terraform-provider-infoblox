@@ -18,7 +18,7 @@ resource "infoblox_alias_record" "alias" {
   target_type = "A"
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({

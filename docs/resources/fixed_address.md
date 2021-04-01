@@ -26,7 +26,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
   }
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({
@@ -51,7 +51,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
   }
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({
@@ -76,7 +76,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
   }
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({
@@ -102,7 +102,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
   }
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({

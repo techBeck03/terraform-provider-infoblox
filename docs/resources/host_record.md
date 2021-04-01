@@ -23,7 +23,7 @@ resource "infoblox_host_record" "static" {
   }
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({
@@ -46,7 +46,7 @@ resource "infoblox_host_record" "from-range" {
   }
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({
@@ -69,7 +69,7 @@ resource "infoblox_host_record" "from-network" {
   }
   extensible_attributes = {
     Owner = jsonencode({
-      value = "leroyjenkins",
+      value = "leeroyjenkins",
       type  = "STRING"
     })
     Location = jsonencode({
