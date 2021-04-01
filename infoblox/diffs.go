@@ -89,28 +89,30 @@ func optionCustomDiff(_ context.Context, diff *schema.ResourceDiff, v interface{
 func hostRecordAddressDiff(c context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	old, new := diff.GetChange("ip_v4_address")
 	if diff.HasChange("ip_v4_address") {
-		ipAddressList := new.(*schema.Set).List()
+		ipAddressList := new.([]interface{})
 		atLeastOneOfFields := []string{
 			"ip_address",
 			"network",
 			"range_function_string",
 		}
-		addressList := new.(*schema.Set).List()
+		addressList := new.([]interface{})
 		for k, address := range ipAddressList {
 			addr := address.(map[string]interface{})
-			matchArgs := []string{}
-			for _, f := range atLeastOneOfFields {
-				if addr[f] != "" {
-					matchArgs = append(matchArgs, f)
+			if len(old.([]interface{})) > 0 {
+				matchArgs := []string{}
+				for _, f := range atLeastOneOfFields {
+					if addr[f] != "" {
+						matchArgs = append(matchArgs, f)
+					}
+				}
+				if len(matchArgs) == 0 {
+					return fmt.Errorf("At least one of %s required for ip_v4_address", strings.Join(atLeastOneOfFields, ", "))
+				} else if len(matchArgs) > 1 {
+					return fmt.Errorf("Only one of %s is allowed for ip_v4_address but found %s", strings.Join(atLeastOneOfFields, ", "), strings.Join(matchArgs, ", "))
 				}
 			}
-			if len(matchArgs) == 0 {
-				return fmt.Errorf("At least one of %s required for ip_v4_address", strings.Join(atLeastOneOfFields, ", "))
-			} else if len(matchArgs) > 1 {
-				return fmt.Errorf("Only one of %s is allowed for ip_v4_address but found %s", strings.Join(atLeastOneOfFields, ", "), strings.Join(matchArgs, ", "))
-			}
-			if addr["ip_address"].(string) == "" && len(old.(*schema.Set).List()) > 0 && old.(*schema.Set).List()[k].(map[string]interface{})["ip_address"].(string) != "" {
-				addr["ip_address"] = old.(*schema.Set).List()[k].(map[string]interface{})["ip_address"].(string)
+			if addr["ip_address"].(string) == "" && len(old.([]interface{})) > 0 && old.([]interface{})[k].(map[string]interface{})["ip_address"].(string) != "" {
+				addr["ip_address"] = old.([]interface{})[k].(map[string]interface{})["ip_address"].(string)
 			}
 			addressList[k] = addr
 		}

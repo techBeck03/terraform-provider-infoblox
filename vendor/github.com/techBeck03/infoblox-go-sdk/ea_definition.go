@@ -26,9 +26,9 @@ func (c *Client) GetEADefinitions(force bool) error {
 		return err
 	}
 
-	err = c.Call(request, &ret)
-	if err != nil {
-		return err
+	response := c.Call(request, &ret)
+	if response != nil {
+		return fmt.Errorf(response.ErrorMessage)
 	}
 
 	c.eaDefinitions = ret

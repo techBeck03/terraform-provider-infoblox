@@ -241,27 +241,27 @@ func testAccCheckInfobloxHostRecordCreateFromRange() string {
 	networkIPAddress.Add(100)
 	hostRecordIPAddressRange = networkIPAddress.ToIPString()
 	return fmt.Sprintf(`
-  resource "infoblox_host_record" "range" {
-    depends_on = [ infoblox_network.new ]
-    hostname   = "%s"
-    comment    = "test host record"
-    enable_dns = true
-    ip_v4_address {
-      range_function_string  = infoblox_range.static.range_function_string
-      use_for_ea_inheritance = true
-    }
-    extensible_attributes = {
-      Owner = jsonencode({
-        value = "leroyjenkins",
-        type  = "STRING",
-      })
-      Location = jsonencode({
-        value = "CollegeStation",
-        type  = "STRING"
-      })
-    }
-  }
-`, hostRecordHostnameCreateRange)
+	  resource "infoblox_host_record" "range" {
+	    depends_on = [ infoblox_network.new ]
+	    hostname   = "%s"
+	    comment    = "test host record"
+	    enable_dns = true
+	    ip_v4_address {
+	      range_function_string  = infoblox_range.static.range_function_string
+	      use_for_ea_inheritance = true
+	    }
+	    extensible_attributes = {
+	      Owner = jsonencode({
+	        value = "leroyjenkins",
+	        type  = "STRING",
+	      })
+	      Location = jsonencode({
+	        value = "CollegeStation",
+	        type  = "STRING"
+	      })
+	    }
+	  }
+	`, hostRecordHostnameCreateRange)
 }
 
 func testAccCheckInfobloxHostRecordUpdateFromRange() string {
@@ -269,25 +269,25 @@ func testAccCheckInfobloxHostRecordUpdateFromRange() string {
 	networkIPAddress.Add(100)
 	hostRecordIPAddressRange = networkIPAddress.ToIPString()
 	return fmt.Sprintf(`
-  resource "infoblox_host_record" "range" {
-    depends_on = [ infoblox_network.new ]
-    hostname   = "%s"
-    comment    = "test host record update"
-    enable_dns = true
-    ip_v4_address {
-      range_function_string  = infoblox_range.static.range_function_string
-      use_for_ea_inheritance = true
-    }
-    extensible_attributes = {
-      Owner = jsonencode({
-        value = "leroyjenkins2",
-        type  = "STRING"
-      })
-      Location = jsonencode({
-        value = "CollegeStation2",
-        type  = "STRING"
-      })
-    }
-  }
-`, hostRecordHostnameUpdateRange)
+	  resource "infoblox_host_record" "range" {
+	    depends_on = [ infoblox_network.new ]
+	    hostname   = "%s"
+	    comment    = "test host record update"
+	    enable_dns = true
+	    ip_v4_address {
+	      range_function_string  = infoblox_range.static.range_function_string
+	      use_for_ea_inheritance = true
+	    }
+	    extensible_attributes = {
+	      Owner = jsonencode({
+	        value = "leroyjenkins2",
+	        type  = "STRING"
+	      })
+	      Location = jsonencode({
+	        value = "CollegeStation2",
+	        type  = "STRING"
+	      })
+	    }
+	  }
+	`, hostRecordHostnameUpdateRange)
 }

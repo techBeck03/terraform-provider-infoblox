@@ -3,20 +3,21 @@ package infoblox
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/mileusna/conditional"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
 var (
 	hostRecordRequiredIPFields = []string{
-		"ip_v4_address.*.network",
-		"ip_v4_address.*.ip_address",
-		"ip_v4_address.*.range_function_string",
+		"network",
+		"ip_address",
+		"range_function_string",
 	}
 )
 
@@ -64,7 +65,7 @@ func resourceHostRecord() *schema.Resource {
 				Required:    true,
 			},
 			"ip_v4_address": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Description: "IPv4 addresses associated with host record.",
 				Optional:    true,
 				Computed:    true,
@@ -99,7 +100,6 @@ func resourceHostRecord() *schema.Resource {
 							Type:             schema.TypeString,
 							Description:      "Network for host record in CIDR notation (next_available_ip will be retrieved from this network).",
 							Optional:         true,
-							Computed:         true,
 							ForceNew:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 						},
@@ -107,7 +107,6 @@ func resourceHostRecord() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "Range start and end string for next_available_ip function calls.",
 							Optional:    true,
-							Computed:    true,
 							ForceNew:    true,
 						},
 						"ref": {
@@ -163,26 +162,25 @@ func convertHostRecordToResourceData(client *infoblox.Client, d *schema.Resource
 	d.Set("view", record.View)
 	d.Set("zone", record.Zone)
 
-	configuredAddressList := d.Get("ip_v4_address").(*schema.Set).List()
+	configuredAddressList := d.Get("ip_v4_address").([]interface{})
 	var ipAddressList []map[string]interface{}
-	for _, address := range record.IPv4Addrs {
-		configuredIndex := -1
-		for i, v := range configuredAddressList {
-			addr := v.(map[string]interface{})["ip_address"].(string)
-			if addr == address.IPAddress {
-				configuredIndex = i
-			}
-		}
-		ipAddressList = append(ipAddressList, map[string]interface{}{
+	for i, address := range record.IPv4Addrs {
+		newAddr := map[string]interface{}{
 			"ref":                    address.Ref,
 			"ip_address":             address.IPAddress,
 			"hostname":               address.Host,
-			"network":                conditional.String(configuredIndex != -1, configuredAddressList[configuredIndex].(map[string]interface{})["network"].(string), ""),
-			"range_function_string":  conditional.String(configuredIndex != -1, configuredAddressList[configuredIndex].(map[string]interface{})["range_function_string"].(string), ""),
 			"mac_address":            address.Mac,
 			"configure_for_dhcp":     address.ConfigureForDHCP,
 			"use_for_ea_inheritance": address.UseForEAInheritance,
-		})
+		}
+		if len(configuredAddressList) > 0 {
+			newAddr["network"] = configuredAddressList[i].(map[string]interface{})["network"].(string)
+			newAddr["range_function_string"] = configuredAddressList[i].(map[string]interface{})["range_function_string"].(string)
+		} else {
+			newAddr["network"] = address.CIDR
+		}
+
+		ipAddressList = append(ipAddressList, newAddr)
 	}
 
 	d.Set("ip_v4_address", ipAddressList)
@@ -207,7 +205,7 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 	record.View = d.Get("view").(string)
 	record.Zone = d.Get("zone").(string)
 
-	ipAddressList := d.Get("ip_v4_address").(*schema.Set).List()
+	ipAddressList := d.Get("ip_v4_address").([]interface{})
 	record.IPv4Addrs = []infoblox.IPv4Addr{}
 	for _, address := range ipAddressList {
 		var ipv4Addr infoblox.IPv4Addr
@@ -227,6 +225,7 @@ func convertResourceDataToHostRecord(client *infoblox.Client, d *schema.Resource
 			ipv4Addr.Mac = address.(map[string]interface{})["mac_address"].(string)
 		}
 		record.IPv4Addrs = append(record.IPv4Addrs, ipv4Addr)
+		log.Printf("[RECORD]=======\n%+v", record)
 	}
 
 	eaMap := d.Get("extensible_attributes").(map[string]interface{})
@@ -276,6 +275,34 @@ func resourceHostRecordCreate(ctx context.Context, d *schema.ResourceData, m int
 	client := m.(*infoblox.Client)
 
 	var diags diag.Diagnostics
+
+	// Check that required IP fields are present
+	if ipAddresses, ok := d.GetOk("ip_v4_address"); ok {
+		for _, a := range ipAddresses.([]interface{}) {
+			address := a.(map[string]interface{})
+			matchArgs := []string{}
+			for _, f := range hostRecordRequiredIPFields {
+				if address[f] != "" {
+					matchArgs = append(matchArgs, f)
+				}
+			}
+			if len(matchArgs) == 0 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Missing ip_v4_address required argument",
+					Detail:   fmt.Sprintf("At least one of %s required for ip_v4_address", strings.Join(hostRecordRequiredIPFields, ", ")),
+				})
+				return diags
+			} else if len(matchArgs) > 1 {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Conflicting arguments found for ip_v4_address",
+					Detail:   fmt.Sprintf("Only one of %s is allowed for ip_v4_address but found %s", strings.Join(hostRecordRequiredIPFields, ", "), strings.Join(matchArgs, ", ")),
+				})
+				return diags
+			}
+		}
+	}
 
 	record, err := convertResourceDataToHostRecord(client, d)
 	if err != nil {
@@ -335,9 +362,9 @@ func resourceHostRecordUpdate(ctx context.Context, d *schema.ResourceData, m int
 		record.Zone = d.Get("zone").(string)
 	}
 	if d.HasChange("ip_v4_address") {
-		if ipAddress, ok := d.GetOk("ip_v4_address"); ok && len(ipAddress.(*schema.Set).List()) > 0 {
+		if ipAddress, ok := d.GetOk("ip_v4_address"); ok && len(ipAddress.([]interface{})) > 0 {
 			record.IPv4Addrs = []infoblox.IPv4Addr{}
-			for _, address := range ipAddress.(*schema.Set).List() {
+			for _, address := range ipAddress.([]interface{}) {
 				var ipv4Addr infoblox.IPv4Addr
 
 				ipv4Addr.IPAddress = address.(map[string]interface{})["ip_address"].(string)

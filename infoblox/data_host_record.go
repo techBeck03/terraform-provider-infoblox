@@ -46,7 +46,7 @@ func dataSourceHostRecord() *schema.Resource {
 				AtLeastOneOf:  dataHostRecordRequiredSearchFields,
 			},
 			"ip_v4_address": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Description: "IPv4 addresses associated with host record.",
 				Computed:    true,
 				Elem: &schema.Resource{
@@ -79,6 +79,11 @@ func dataSourceHostRecord() *schema.Resource {
 						"configure_for_dhcp": {
 							Type:        schema.TypeBool,
 							Description: "Set this to True to enable the DHCP configuration for this host address.",
+							Computed:    true,
+						},
+						"use_for_ea_inheritance": {
+							Type:        schema.TypeBool,
+							Description: "Set this to True when using this host address for EA inheritance.",
 							Computed:    true,
 						},
 					},
