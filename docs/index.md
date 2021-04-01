@@ -110,4 +110,3 @@ extensible_attributes = {
   })
 }
 ```
-
