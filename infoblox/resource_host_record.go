@@ -86,6 +86,7 @@ func resourceHostRecord() *schema.Resource {
 							Type:             schema.TypeString,
 							Description:      "IP address.",
 							Optional:         true,
+							Computed:         true,
 							ForceNew:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.IsIPv4Address),
 						},
@@ -100,6 +101,7 @@ func resourceHostRecord() *schema.Resource {
 							Description:      "Network for host record in CIDR notation (next_available_ip will be retrieved from this network).",
 							Optional:         true,
 							ForceNew:         true,
+							Computed:         true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 						},
 						"range_function_string": {
