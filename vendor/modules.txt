@@ -177,12 +177,12 @@ github.com/techBeck03/go-ipmath
 # github.com/techBeck03/infoblox-go-sdk v1.0.0
 ## explicit
 github.com/techBeck03/infoblox-go-sdk
-# github.com/tidwall/gjson v1.7.4
+# github.com/tidwall/gjson v1.9.3
 ## explicit
 github.com/tidwall/gjson
-# github.com/tidwall/match v1.0.3
+# github.com/tidwall/match v1.1.1
 github.com/tidwall/match
-# github.com/tidwall/pretty v1.1.0
+# github.com/tidwall/pretty v1.2.0
 github.com/tidwall/pretty
 # github.com/ulikunitz/xz v0.5.8
 github.com/ulikunitz/xz

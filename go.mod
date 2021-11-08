@@ -7,5 +7,5 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.4.3
 	github.com/techBeck03/go-ipmath v0.0.8
 	github.com/techBeck03/infoblox-go-sdk v1.0.0
-	github.com/tidwall/gjson v1.7.4
+	github.com/tidwall/gjson v1.9.3
 )

@@ -39,3 +39,5 @@ terraform.rc
 terraform
 
 .env
+
+dist/
