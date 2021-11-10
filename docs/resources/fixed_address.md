@@ -16,7 +16,7 @@ Manages configuration details for a fixed address in infoblox
 ```terraform
 resource "infoblox_fixed_address" "fixed-addr" {
   ip_address        = "172.19.4.251"
-  name              = "HSRP-A"
+  hostname              = "HSRP-A"
   comment           = "example fixed address"
   match_client      = "RESERVED"
   restart_if_needed = true
@@ -41,7 +41,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
 ```terraform
 resource "infoblox_fixed_address" "fixed-addr" {
   cidr              = "172.19.4.0/24"
-  name              = "HSRP-A"
+  hostname              = "HSRP-A"
   comment           = "example fixed address"
   match_client      = "RESERVED"
   restart_if_needed = true
@@ -66,7 +66,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
 ```terraform
 resource "infoblox_fixed_address" "fixed-addr" {
   range_function_string = "172.19.4.2-172.19.4.10"
-  name                  = "HSRP-A"
+  hostname                  = "HSRP-A"
   comment               = "example fixed address"
   match_client          = "RESERVED"
   restart_if_needed     = true
@@ -91,7 +91,7 @@ resource "infoblox_fixed_address" "fixed-addr" {
 ```terraform
 resource "infoblox_fixed_address" "fixed-addr" {
   ip_address        = "172.19.4.251"
-  name              = "HSRP-A"
+  hostname              = "HSRP-A"
   comment           = "example fixed address"
   mac               = "12:34:56:78:9A:BC"
   match_client      = "MAC_ADDRESS"

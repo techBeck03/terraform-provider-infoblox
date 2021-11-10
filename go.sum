@@ -273,8 +273,8 @@ github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/techBeck03/go-ipmath v0.0.8 h1:U/z7bYt+92I/VpbJvpW48+hnPC0rOmvLuyEuiURNeWw=
 github.com/techBeck03/go-ipmath v0.0.8/go.mod h1:VugtTa3vBBdfSTeYQQov/NzzXt40R+LtuFr15KWUhpY=
-github.com/techBeck03/infoblox-go-sdk v1.0.0 h1:q62/WhKLMCSJEQIg71fx/3PbdTIEgLJtXJnl+LcGvpk=
-github.com/techBeck03/infoblox-go-sdk v1.0.0/go.mod h1:miTvClw8XenPYZ9psw+71AmtlPmY2Lu0EPLBWJ0JIQw=
+github.com/techBeck03/infoblox-go-sdk v1.0.1 h1:Em+53efxhKUmB05+QbQHQdWJIpaljp7On+8K21ApekI=
+github.com/techBeck03/infoblox-go-sdk v1.0.1/go.mod h1:miTvClw8XenPYZ9psw+71AmtlPmY2Lu0EPLBWJ0JIQw=
 github.com/tidwall/gjson v1.9.3 h1:hqzS9wAHMO+KVBBkLxYdkEeeFHuqr95GfClRLKlgK0E=
 github.com/tidwall/gjson v1.9.3/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
