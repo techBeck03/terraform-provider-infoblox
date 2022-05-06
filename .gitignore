@@ -41,3 +41,4 @@ terraform
 .env
 
 dist/
+test/

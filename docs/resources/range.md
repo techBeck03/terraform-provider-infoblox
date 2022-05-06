@@ -69,6 +69,7 @@ resource "infoblox_range" "specified_range" {
 
 The following attributes are exported.
 
+- `address_list` -  (Computed) The list of IP Addresses associated with this range
 - `cidr` -  (Required, String) The network to which this range belongs, in IPv4 Address/CIDR format.
 - `comment` - (Optional, String) Comment for the range; maximum 256 characters.
 - `disable_dhcp` - (Optional, Bool) Disable for DHCP.

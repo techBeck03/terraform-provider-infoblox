@@ -38,6 +38,14 @@ func resourceRange() *schema.Resource {
 			makeGTIPCheck("start_address", "end_address"),
 		),
 		Schema: map[string]*schema.Schema{
+			"address_list": {
+				Type:        schema.TypeList,
+				Description: "The list of IP Addresses associated with this range",
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "The network to which this range belongs, in IPv4 Address/CIDR format.",
@@ -217,6 +225,7 @@ func convertRangeToResourceData(client *infoblox.Client, d *schema.ResourceData,
 	d.Set("range_function_string", fmt.Sprintf("%s-%s", addressRange.StartAddress, addressRange.EndAddress))
 	d.Set("network_view", addressRange.NetworkView)
 	d.Set("disable_dhcp", addressRange.DisableDHCP)
+	d.Set("address_list", addressRange.IPAddressList)
 
 	var memberList []map[string]interface{}
 	if addressRange.Member != nil {

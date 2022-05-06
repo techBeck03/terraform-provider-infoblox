@@ -21,7 +21,7 @@ data "infoblox_range" "range" {
 
 ```terraform
 data "infoblox_range" "range" {
-  ref = "range/867530986753098675309867530986753098675309867530986753098675309:172.19.4.2/172.19.4.10/default/default"no
+  ref = "range/867530986753098675309867530986753098675309867530986753098675309:172.19.4.2/172.19.4.10/default/default"
 }
 ```
 
@@ -29,6 +29,7 @@ data "infoblox_range" "range" {
 
 The following attributes are exported.
 
+- `address_list` -  (Computed) The list of IP Addresses associated with this range
 - `cidr` -  (MutuallyExclusiveGroup*/Computed, String) The network to which this range belongs, in IPv4 Address/CIDR format.
 - `comment` - (Computed, String) Comment for the range; maximum 256 characters.
 - `disable_dhcp` - (Computed, Bool) Disable for DHCP.

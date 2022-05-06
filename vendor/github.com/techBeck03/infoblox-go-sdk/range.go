@@ -3,8 +3,11 @@ package infoblox
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
+
+	"github.com/techBeck03/go-ipmath"
 )
 
 const (
@@ -35,10 +38,16 @@ func (c *Client) GetRangeByRef(ref string, queryParams map[string]string) (Range
 		return ret, fmt.Errorf(response.ErrorMessage)
 	}
 
+	startingIP := ipmath.IP{
+		Address: net.ParseIP(ret.StartAddress),
+	}
+	count := startingIP.Difference(net.ParseIP(ret.EndAddress)) + 1
+	ret.IPAddressList = getRangeAddressList(ret.StartAddress, count)
+
 	return ret, nil
 }
 
-// GetRangeByQuery gets range by reference
+// GetRangeByQuery gets range by query
 func (c *Client) GetRangeByQuery(queryParams map[string]string) ([]Range, error) {
 	var ret RangeQueryResult
 
@@ -58,7 +67,27 @@ func (c *Client) GetRangeByQuery(queryParams map[string]string) ([]Range, error)
 		return nil, fmt.Errorf(response.ErrorMessage)
 	}
 
+	for i, r := range ret.Results {
+		startingIP := ipmath.IP{
+			Address: net.ParseIP(r.StartAddress),
+		}
+		count := startingIP.Difference(net.ParseIP(r.EndAddress)) + 1
+		ret.Results[i].IPAddressList = getRangeAddressList(r.StartAddress, count)
+	}
+
 	return ret.Results, nil
+}
+
+func getRangeAddressList(startAddress string, count int) []string {
+	ipAddressList := []string{}
+	startingIP := ipmath.IP{
+		Address: net.ParseIP(startAddress),
+	}
+	for i := 0; i < count; i++ {
+		ipAddressList = append(ipAddressList, startingIP.ToIPString())
+		startingIP.Inc()
+	}
+	return ipAddressList
 }
 
 // GetPaginatedCidrRanges gets ranges within CIDR by page
@@ -105,6 +134,11 @@ func (c *Client) CreateRange(rangeObject *Range) error {
 	if response != nil {
 		return fmt.Errorf(response.ErrorMessage)
 	}
+	startingIP := ipmath.IP{
+		Address: net.ParseIP(rangeObject.StartAddress),
+	}
+	count := startingIP.Difference(net.ParseIP(rangeObject.EndAddress)) + 1
+	rangeObject.IPAddressList = getRangeAddressList(rangeObject.StartAddress, count)
 	return nil
 }
 
@@ -129,7 +163,7 @@ func (c *Client) UpdateRange(ref string, rangeObject Range) (Range, error) {
 
 // DeleteRange deletes range
 func (c *Client) DeleteRange(ref string) error {
-	request, err := c.CreateJSONRequest(http.MethodDelete, fmt.Sprintf("%s", ref), nil)
+	request, err := c.CreateJSONRequest(http.MethodDelete, ref, nil)
 	if err != nil {
 		return err
 	}
@@ -146,11 +180,12 @@ func (c *Client) DeleteRange(ref string) error {
 
 // CreateSequentialRange creates sequential address range
 func (c *Client) CreateSequentialRange(rangeObject *Range, query AddressQuery) error {
+	c.SequentialLock.Lock()
+	defer c.SequentialLock.Unlock()
 	query.fillDefaults()
 	retryCount := 0
 	verified := false
-
-	for verified == false && retryCount <= query.Retries {
+	for !verified && retryCount <= query.Retries {
 		sequentialAddresses, err := c.GetSequentialAddressRange(query)
 		if err != nil {
 			return err
@@ -161,6 +196,7 @@ func (c *Client) CreateSequentialRange(rangeObject *Range, query AddressQuery) e
 		err = c.CreateRange(rangeObject)
 		if err != nil {
 			verified = false
+			time.Sleep(1 * time.Second)
 		} else {
 			log.Println("Pausing for race condition checks")
 			time.Sleep(1 * time.Second)
@@ -188,10 +224,10 @@ func (c *Client) CreateSequentialRange(rangeObject *Range, query AddressQuery) e
 		}
 	}
 
-	if verified == false {
-		return fmt.Errorf("Unable to create sequential range within %s", query.CIDR)
+	if !verified {
+		return fmt.Errorf("unable to create sequential range within %s", query.CIDR)
 	}
-
+	rangeObject.IPAddressList = getRangeAddressList(rangeObject.StartAddress, query.Count)
 	return nil
 }
 
@@ -225,14 +261,14 @@ func (c *Client) CheckIfRangeContainsRange(query IPsWithinRangeQuery) (bool, err
 
 	matchFlag := false
 
-	for matchFlag == false {
+	for !matchFlag {
 		for _, addressRange := range ret.Results {
 			if addressRange.Ref != query.Ref && (ipWithinRange(addressRange.StartAddress, addressRange.EndAddress, query.StartAddress) || ipWithinRange(addressRange.StartAddress, addressRange.EndAddress, query.EndAddress)) {
 				matchFlag = true
 				break
 			}
 		}
-		if matchFlag == false && ret.NextPageID != "" {
+		if !matchFlag && ret.NextPageID != "" {
 			queryParams["_page_id"] = ret.NextPageID
 			queryParamString := c.BuildQuery(queryParams)
 
@@ -245,7 +281,7 @@ func (c *Client) CheckIfRangeContainsRange(query IPsWithinRangeQuery) (bool, err
 			if response != nil {
 				return true, fmt.Errorf(response.ErrorMessage)
 			}
-		} else if matchFlag == false && ret.NextPageID == "" {
+		} else if !matchFlag && ret.NextPageID == "" {
 			return false, nil
 		}
 	}

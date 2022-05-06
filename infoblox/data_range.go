@@ -20,6 +20,14 @@ func dataSourceRange() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceRangeRead,
 		Schema: map[string]*schema.Schema{
+			"address_list": {
+				Type:        schema.TypeList,
+				Description: "The list of IP Addresses associated with this range",
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "The network to which this range belongs, in IPv4 Address/CIDR format.",
