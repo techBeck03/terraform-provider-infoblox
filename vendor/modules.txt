@@ -174,7 +174,7 @@ github.com/oklog/run
 # github.com/techBeck03/go-ipmath v0.0.8
 ## explicit
 github.com/techBeck03/go-ipmath
-# github.com/techBeck03/infoblox-go-sdk v1.0.7
+# github.com/techBeck03/infoblox-go-sdk v1.0.10
 ## explicit
 github.com/techBeck03/infoblox-go-sdk
 # github.com/tidwall/gjson v1.9.3
