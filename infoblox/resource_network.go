@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/techBeck03/go-ipmath"
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
@@ -17,18 +18,22 @@ func resourceNetwork() *schema.Resource {
 		ReadContext:   resourceNetworkRead,
 		UpdateContext: resourceNetworkUpdate,
 		DeleteContext: resourceNetworkDelete,
-		// Importer: &schema.ResourceImporter{
-		// 	State: schema.ImportStatePassthrough,
-		// },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		CustomizeDiff: customdiff.Sequence(
-			makeEACustomDiff("extensible_attributes"),
+			makeEACustomDiffNetwork("extensible_attributes"),
 			optionCustomDiff,
 		),
 		Schema: map[string]*schema.Schema{
 			"cidr": {
 				Type:             schema.TypeString,
 				Description:      "The network address in IPv4 Address/CIDR format.",
-				Required:         true,
+				Optional:         true,
+				Computed:         true,
+				AtLeastOneOf:     []string{"cidr", "parent_cidr", "ea_search"},
+				ConflictsWith:    []string{"ea_search", "parent_cidr"},
+				ForceNew:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsCIDR),
 			},
 			"comment": {
@@ -38,11 +43,25 @@ func resourceNetwork() *schema.Resource {
 				Computed:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 256)),
 			},
+
 			"disable_dhcp": {
 				Type:        schema.TypeBool,
 				Description: "Disable for DHCP.",
 				Optional:    true,
-				Computed:    true,
+				Default:     false,
+			},
+			"ea_search": {
+				Type:          schema.TypeMap,
+				Description:   "Ea search criteria for next_available_network function",
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"cidr", "parent_cidr"},
+				AtLeastOneOf:  []string{"cidr", "parent_cidr", "ea_search"},
+				RequiredWith:  []string{"prefix_length"},
+				ForceNew:      true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"extensible_attributes": {
 				Type:             schema.TypeMap,
@@ -54,6 +73,29 @@ func resourceNetwork() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"gateway_ea": {
+				Type:         schema.TypeString,
+				Description:  "Name of extensible attribute for gateway address",
+				Optional:     true,
+				RequiredWith: []string{"gateway_offset"},
+			},
+			"gateway_label": {
+				Type:        schema.TypeString,
+				Description: "Name to apply to gateway reservation",
+				Optional:    true,
+				Default:     "Gateway",
+			},
+			"gateway_offset": {
+				Type:             schema.TypeInt,
+				Description:      "Offset from network address to reserve for default gateway",
+				Optional:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+			},
+			"gateway_ref": {
+				Type:        schema.TypeString,
+				Description: "Reference id for gateway if created",
+				Computed:    true,
 			},
 			"grid_ref": {
 				Type:         schema.TypeString,
@@ -144,6 +186,23 @@ func resourceNetwork() *schema.Resource {
 						},
 					},
 				},
+			},
+			"parent_cidr": {
+				Type:          schema.TypeString,
+				Description:   "Parent container CIDR subnet",
+				Optional:      true,
+				Default:       "",
+				AtLeastOneOf:  []string{"cidr", "parent_cidr", "ea_search"},
+				ConflictsWith: []string{"cidr", "ea_search"},
+				RequiredWith:  []string{"prefix_length"},
+				ForceNew:      true,
+			},
+			"prefix_length": {
+				Type:             schema.TypeInt,
+				Description:      "Desired prefix size of requested network",
+				Optional:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(1)),
+				ForceNew:         true,
 			},
 			"ref": {
 				Type:        schema.TypeString,
@@ -259,6 +318,92 @@ func convertResourceDataToNetwork(client *infoblox.Client, d *schema.ResourceDat
 	return &network, nil
 }
 
+func convertResourceDataToNetworkFromContainer(client *infoblox.Client, d *schema.ResourceData) (*infoblox.NetworkFromContainer, error) {
+	var network infoblox.NetworkFromContainer
+
+	prefix := d.Get("prefix_length").(int)
+	parent_cidr := d.Get("parent_cidr").(string)
+
+	if parent_cidr != "" {
+		network.Network = infoblox.NetworkContainerFunction{
+			Function:    "next_available_network",
+			ResultField: "networks",
+			Object:      "networkcontainer",
+			ObjectParameters: map[string]string{
+				"network": parent_cidr,
+			},
+			Parameters: map[string]int{
+				"cidr": prefix,
+			},
+		}
+	} else {
+		ea_search_map := d.Get("ea_search").(map[string]interface{})
+		ea_search := make(map[string]string)
+		for k, v := range ea_search_map {
+			ea_search[k] = v.(string)
+		}
+		network.Network = infoblox.NetworkContainerFunction{
+			Function:         "next_available_network",
+			ResultField:      "networks",
+			Object:           "networkcontainer",
+			ObjectParameters: ea_search,
+			Parameters: map[string]int{
+				"cidr": prefix,
+			},
+		}
+	}
+	network.Comment = d.Get("comment").(string)
+	network.DisableDHCP = newBool(d.Get("disable_dhcp").(bool))
+	network.NetworkView = d.Get("network_view").(string)
+
+	memberList := d.Get("member").([]interface{})
+	network.Members = []infoblox.Member{}
+	if len(memberList) > 0 {
+		for _, member := range memberList {
+			network.Members = append(network.Members, infoblox.Member{
+				StructType:  member.(map[string]interface{})["struct"].(string),
+				Hostname:    member.(map[string]interface{})["hostname"].(string),
+				IPV4Address: member.(map[string]interface{})["ip_v4_address"].(string),
+				IPV6Address: member.(map[string]interface{})["ip_v6_address"].(string),
+			})
+		}
+	}
+
+	optionList := d.Get("option").(*schema.Set).List()
+	network.Options = []infoblox.Option{}
+	if len(optionList) > 0 {
+		for _, option := range optionList {
+			network.Options = append(network.Options, infoblox.Option{
+				Name:        option.(map[string]interface{})["name"].(string),
+				Code:        option.(map[string]interface{})["code"].(int),
+				UseOption:   newBool(option.(map[string]interface{})["use_option"].(bool)),
+				Value:       option.(map[string]interface{})["value"].(string),
+				VendorClass: option.(map[string]interface{})["vendor_class"].(string),
+			})
+		}
+	}
+
+	eaMap := d.Get("extensible_attributes").(map[string]interface{})
+	if len(eaMap) > 0 {
+		eas, err := createExtensibleAttributesFromJSON(eaMap)
+		if err != nil {
+			return &network, err
+		}
+		network.ExtensibleAttributes = &eas
+	}
+
+	if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+		if network.ExtensibleAttributes == nil {
+			network.ExtensibleAttributes = &infoblox.ExtensibleAttribute{}
+		}
+		for k, v := range *client.OrchestratorEAs {
+			(*network.ExtensibleAttributes)[k] = v
+		}
+	}
+
+	return &network, nil
+}
+
 func resourceNetworkRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*infoblox.Client)
 
@@ -286,24 +431,84 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	var diags diag.Diagnostics
 
-	network, err := convertResourceDataToNetwork(client, d)
-	if err != nil {
-		diags = append(diags, diag.FromErr(err)...)
-		return diags
-	}
+	var network *infoblox.Network
 
-	err = client.CreateNetwork(network)
-	if err != nil {
-		diags = append(diags, diag.FromErr(err)...)
-		return diags
+	cidr := d.Get("cidr").(string)
+	if cidr == "" {
+		net, err := convertResourceDataToNetworkFromContainer(client, d)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		cResult, err := client.CreateNetworkFromContainer(net)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		network = &cResult
+	} else {
+		net, err := convertResourceDataToNetwork(client, d)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		err = client.CreateNetwork(net)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		network = net
 	}
 
 	if diags.HasError() {
 		return diags
 	}
 
+	gw_offset := d.Get("gateway_offset").(int)
+	if gw_offset > 0 {
+		ip, err := ipmath.NewIP(network.CIDR)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		err = ip.Add(gw_offset)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		gw_reservation := infoblox.FixedAddress{
+			IPAddress:   ip.ToIPString(),
+			NetworkView: network.NetworkView,
+			CIDR:        network.CIDR,
+			Hostname:    d.Get("gateway_label").(string),
+			MatchClient: "RESERVED",
+		}
+		err = client.CreateFixedAddress(&gw_reservation)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+		}
+		d.Set("gateway_ref", gw_reservation.Ref)
+		gw_ea := d.Get("gateway_ea").(string)
+		if gw_ea != "" {
+			update := infoblox.Network{
+				Ref: network.Ref,
+			}
+			eas := &infoblox.ExtensibleAttribute{}
+			(*eas)[gw_ea] = infoblox.ExtensibleAttributeValue{
+				Value: ip.ToIPString(),
+			}
+			update.ExtensibleAttributesAdd = eas
+			updated_network, err := client.UpdateNetwork(network.Ref, update)
+			if err != nil {
+				diags = append(diags, diag.FromErr(err)...)
+				return diags
+			}
+			network = &updated_network
+		}
+	}
+
 	if d.Get("restart_if_needed").(bool) && len(network.Members) == 1 {
-		err = client.RestartServices(d.Get("grid_ref").(string), infoblox.GridServiceRestartRequest{
+		err := client.RestartServices(d.Get("grid_ref").(string), infoblox.GridServiceRestartRequest{
 			RestartOption: "RESTART_IF_NEEDED",
 			Services:      []string{"DHCP"},
 			Members:       []string{network.Members[0].Hostname},
@@ -312,7 +517,6 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 			diags = append(diags, diag.FromErr(err)...)
 			return diags
 		}
-		// time.Sleep(2 * time.Second)
 	}
 
 	if diags.HasError() {
@@ -412,10 +616,92 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			}
 		}
 	}
+
+	if d.HasChange("gateway_ea") && !d.HasChange("gateway_offset") {
+		old, _ := d.GetChange("extensible_attributes")
+		oldEAs, err := createExtensibleAttributesFromJSON(old.(map[string]interface{}))
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		if network.ExtensibleAttributesRemove == nil {
+			network.ExtensibleAttributesRemove = &infoblox.ExtensibleAttribute{}
+		}
+		(*network.ExtensibleAttributesRemove)[d.Get("gateway_ea").(string)] = oldEAs[d.Get("gateway_ea").(string)]
+		if network.ExtensibleAttributesAdd == nil {
+			network.ExtensibleAttributesAdd = &infoblox.ExtensibleAttribute{}
+		}
+		gw_offset := d.Get("gateway_offset").(int)
+		ip, err := ipmath.NewIP(d.Get("cidr").(string))
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		err = ip.Add(gw_offset)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		(*network.ExtensibleAttributesAdd)[d.Get("gateway_ea").(string)] = infoblox.ExtensibleAttributeValue{
+			Value: ip.ToIPString(),
+		}
+	}
+
 	changedNetwork, err := client.UpdateNetwork(d.Id(), network)
 	if err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 		return diags
+	}
+
+	if d.HasChange("gateway_offset") {
+		gw_ref := d.Get("gateway_ref").(string)
+		if gw_ref != "" {
+			err = client.DeleteFixedAddress(gw_ref)
+			if err != nil {
+				diags = append(diags, diag.FromErr(err)...)
+				return diags
+			}
+		}
+		gw_offset := d.Get("gateway_offset").(int)
+		ip, err := ipmath.NewIP(changedNetwork.CIDR)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		err = ip.Add(gw_offset)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+			return diags
+		}
+		gw_reservation := infoblox.FixedAddress{
+			IPAddress:   ip.ToIPString(),
+			NetworkView: changedNetwork.NetworkView,
+			CIDR:        changedNetwork.CIDR,
+			Hostname:    d.Get("gateway_label").(string),
+			MatchClient: "RESERVED",
+		}
+		err = client.CreateFixedAddress(&gw_reservation)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+		}
+		d.Set("gateway_ref", gw_reservation.Ref)
+		gw_ea := d.Get("gateway_ea").(string)
+		if gw_ea != "" {
+			update := infoblox.Network{
+				Ref: changedNetwork.Ref,
+			}
+			eas := &infoblox.ExtensibleAttribute{}
+			(*eas)[gw_ea] = infoblox.ExtensibleAttributeValue{
+				Value: ip.ToIPString(),
+			}
+			update.ExtensibleAttributesAdd = eas
+			updated_network, err := client.UpdateNetwork(changedNetwork.Ref, update)
+			if err != nil {
+				diags = append(diags, diag.FromErr(err)...)
+				return diags
+			}
+			changedNetwork = updated_network
+		}
 	}
 
 	d.SetId(changedNetwork.Ref)

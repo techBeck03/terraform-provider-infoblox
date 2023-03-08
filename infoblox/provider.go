@@ -62,6 +62,7 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"infoblox_container":     resourceContainer(),
 			"infoblox_host_record":   resourceHostRecord(),
 			"infoblox_network":       resourceNetwork(),
 			"infoblox_range":         resourceRange(),
@@ -72,6 +73,7 @@ func Provider() *schema.Provider {
 			"infoblox_ptr_record":    resourcePtrRecord(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
+			"infoblox_container":                dataSourceContainer(),
 			"infoblox_host_record":              dataSourceHostRecord(),
 			"infoblox_network":                  dataSourceNetwork(),
 			"infoblox_grid":                     dataSourceGrid(),

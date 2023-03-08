@@ -27,9 +27,9 @@ func resourceRange() *schema.Resource {
 		ReadContext:   resourceRangeRead,
 		UpdateContext: resourceRangeUpdate,
 		DeleteContext: resourceRangeDelete,
-		// Importer: &schema.ResourceImporter{
-		// 	State: schema.ImportStatePassthrough,
-		// },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		CustomizeDiff: customdiff.Sequence(
 			makeEACustomDiff("extensible_attributes"),
 			// makeAddressCompareCustomDiff("start_address", "end_address"),

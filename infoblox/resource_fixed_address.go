@@ -26,9 +26,9 @@ func resourceFixedAddress() *schema.Resource {
 		ReadContext:   resourceFixedAddressRead,
 		UpdateContext: resourceFixedAddressUpdate,
 		DeleteContext: resourceFixedAddressDelete,
-		// Importer: &schema.ResourceImporter{
-		// 	State: schema.ImportStatePassthrough,
-		// },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		CustomizeDiff: customdiff.Sequence(
 			makeEACustomDiff("extensible_attributes"),
 		),

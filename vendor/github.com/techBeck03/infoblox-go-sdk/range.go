@@ -3,6 +3,7 @@ package infoblox
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"time"
@@ -125,6 +126,7 @@ func (c *Client) CreateRange(rangeObject *Range) error {
 		"_return_fields": rangeReturnFields,
 	}
 	queryParamString := c.BuildQuery(queryParams)
+	rangeObject.IPAddressList = []string{}
 	request, err := c.CreateJSONRequest(http.MethodPost, fmt.Sprintf("%s?%s", rangeBasePath, queryParamString), rangeObject)
 	if err != nil {
 		return err
@@ -186,18 +188,23 @@ func (c *Client) CreateSequentialRange(rangeObject *Range, query AddressQuery) e
 	retryCount := 0
 	verified := false
 	for !verified && retryCount <= query.Retries {
+		log.Println("Getting sequential range")
 		sequentialAddresses, err := c.GetSequentialAddressRange(query)
 		if err != nil {
+			log.Printf("The following error occurred while getting sequential address range: %s", err)
 			return err
 		}
 		rangeObject.StartAddress = (*sequentialAddresses)[0].IPAddress
 		rangeObject.EndAddress = (*sequentialAddresses)[len(*sequentialAddresses)-1].IPAddress
 
+		log.Println("Creating range")
+		time.Sleep(10 * time.Second)
 		err = c.CreateRange(rangeObject)
 		if err != nil {
 			verified = false
-			time.Sleep(1 * time.Second)
+			time.Sleep(2 * time.Second)
 			retryCount++
+			log.Printf("An error occurred creating range: %s", err)
 		} else {
 			log.Println("Pausing for race condition checks")
 			time.Sleep(1 * time.Second)
@@ -217,8 +224,10 @@ func (c *Client) CreateSequentialRange(rangeObject *Range, query AddressQuery) e
 				retryCount++
 				err := c.DeleteRange(rangeObject.Ref)
 				if err != nil {
+					log.Printf("The following error occurred deleting range: %s", err)
 					return err
 				}
+				time.Sleep(time.Duration(rand.Intn(5)) * time.Second)
 			} else {
 				verified = true
 			}

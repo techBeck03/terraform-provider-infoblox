@@ -11,12 +11,15 @@ import (
 	infoblox "github.com/techBeck03/infoblox-go-sdk"
 )
 
-func makeEACustomDiff(arg string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+func makeEACustomDiff(arg string, ignored_eas ...string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	return func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 		client := v.(*infoblox.Client)
 		var eas infoblox.ExtensibleAttribute
 		old, new := diff.GetChange(arg)
 		eaMap := new.(map[string]interface{})
+		for _, ignored_ea := range ignored_eas {
+			eaMap[ignored_ea] = old.(map[string]interface{})[ignored_ea]
+		}
 		if diff.HasChange(arg) && len(eaMap) > 0 {
 			localEAs, err := createExtensibleAttributesFromJSON(eaMap)
 			if err != nil {
@@ -34,7 +37,62 @@ func makeEACustomDiff(arg string) func(_ context.Context, diff *schema.ResourceD
 				return err
 			}
 			for k, v := range oldEAs {
-				if v.InheritanceSource != nil && (newEAs[k].Value == nil || newEAs[k].Value == v.Value) {
+				if v.InheritanceSource != nil && (newEAs[k].Value == nil || newEAs[k].Value == v.Value || Contains(ignored_eas, k)) {
+					if eas == nil {
+						eas = infoblox.ExtensibleAttribute{
+							k: v,
+						}
+					}
+					(eas)[k] = v
+				}
+			}
+		}
+		if client.OrchestratorEAs != nil && len(*client.OrchestratorEAs) > 0 {
+
+			for k, v := range *client.OrchestratorEAs {
+				if len(eaMap) == 0 {
+					eas = make(infoblox.ExtensibleAttribute)
+				}
+				(eas)[k] = v
+			}
+		}
+		finalEas, err := client.ConvertEAsToJSONString(eas)
+		if err != nil {
+			return err
+		}
+		diff.SetNew(arg, finalEas)
+		return nil
+	}
+}
+
+func makeEACustomDiffNetwork(arg string) func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	return func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+		client := v.(*infoblox.Client)
+		var eas infoblox.ExtensibleAttribute
+		old, new := diff.GetChange(arg)
+		eaMap := new.(map[string]interface{})
+		gateway_ea := diff.Get("gateway_ea").(string)
+		if gateway_ea != "" && old != nil && old.(map[string]interface{})[gateway_ea] != nil {
+			eaMap[gateway_ea] = old.(map[string]interface{})[gateway_ea]
+		}
+		if diff.HasChange(arg) && len(eaMap) > 0 {
+			localEAs, err := createExtensibleAttributesFromJSON(eaMap)
+			if err != nil {
+				return err
+			}
+			eas = localEAs
+		}
+		if len(old.(map[string]interface{})) > 0 {
+			oldEAs, err := createExtensibleAttributesFromJSON(old.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
+			newEAs, err := createExtensibleAttributesFromJSON(new.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
+			for k, v := range oldEAs {
+				if v.InheritanceSource != nil && (newEAs[k].Value == nil || newEAs[k].Value == v.Value || k == gateway_ea) {
 					if eas == nil {
 						eas = infoblox.ExtensibleAttribute{
 							k: v,
@@ -67,7 +125,6 @@ func optionCustomDiff(_ context.Context, diff *schema.ResourceDiff, v interface{
 	defaultFlag := false
 	var leaseOption map[string]interface{}
 	optionList := old.(*schema.Set).List()
-
 	if len(optionList) > 0 {
 		for _, option := range optionList {
 			if option.(map[string]interface{})["code"].(int) == 51 {

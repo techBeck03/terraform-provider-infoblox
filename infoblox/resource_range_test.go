@@ -20,8 +20,8 @@ var (
 
 func TestAccInfobloxRangeBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: composeConfig(testAccProviderBaseConfig, testAccCheckInfobloxNetworkCreate(), testAccCheckInfobloxRangeCreateSequential(), testAccCheckInfobloxRangeCreateStatic()),
@@ -34,8 +34,8 @@ func TestAccInfobloxRangeBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "end_address", rangeEndAddressSequential),
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "range_function_string", fmt.Sprintf("%s-%s", rangeStartAddressSequential, rangeEndAddressSequential)),
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "disable_dhcp", "true"),
-					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
-					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
+					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Location", fmt.Sprintf("{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
+					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Owner", fmt.Sprintf("{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 					testAccCheckInfobloxNetworkExists("infoblox_range.static"),
 					resource.TestCheckResourceAttr("infoblox_range.static", "cidr", rangeNetworkAddress),
@@ -44,8 +44,8 @@ func TestAccInfobloxRangeBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_range.static", "end_address", rangeEndAddressStatic),
 					resource.TestCheckResourceAttr("infoblox_range.static", "range_function_string", fmt.Sprintf("%s-%s", rangeStartAddressStatic, rangeEndAddressStatic)),
 					resource.TestCheckResourceAttr("infoblox_range.static", "disable_dhcp", "true"),
-					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Location", "{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
-					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Owner", "{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"network/ZG5zLm5ldHdvcmskMTcyLjE5LjQuMC8yNC8w:172.19.4.0/24/default\"}}"),
+					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Location", fmt.Sprintf("{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
+					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Owner", fmt.Sprintf("{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
 					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},

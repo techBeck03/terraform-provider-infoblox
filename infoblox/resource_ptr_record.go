@@ -16,9 +16,9 @@ func resourcePtrRecord() *schema.Resource {
 		ReadContext:   resourcePtrRecordRead,
 		UpdateContext: resourcePtrRecordUpdate,
 		DeleteContext: resourcePtrRecordDelete,
-		// Importer: &schema.ResourceImporter{
-		// 	State: schema.ImportStatePassthrough,
-		// },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		CustomizeDiff: customdiff.Sequence(
 			makeEACustomDiff("extensible_attributes"),
 		),
