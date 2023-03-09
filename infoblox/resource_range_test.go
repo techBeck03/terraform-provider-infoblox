@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/techBeck03/go-ipmath"
+	"github.com/tidwall/gjson"
 )
 
 var (
@@ -34,8 +35,8 @@ func TestAccInfobloxRangeBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "end_address", rangeEndAddressSequential),
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "range_function_string", fmt.Sprintf("%s-%s", rangeStartAddressSequential, rangeEndAddressSequential)),
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "disable_dhcp", "true"),
-					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Location", fmt.Sprintf("{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
-					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Owner", fmt.Sprintf("{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
+					testAccCheckInfobloxExtensibleAttribute("infoblox_range.sequential", "extensible_attributes.Location", "CollegeStation"),
+					testAccCheckInfobloxExtensibleAttribute("infoblox_range.sequential", "extensible_attributes.Owner", "leroyjenkins"),
 					resource.TestCheckResourceAttr("infoblox_range.sequential", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 					testAccCheckInfobloxNetworkExists("infoblox_range.static"),
 					resource.TestCheckResourceAttr("infoblox_range.static", "cidr", rangeNetworkAddress),
@@ -44,8 +45,8 @@ func TestAccInfobloxRangeBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("infoblox_range.static", "end_address", rangeEndAddressStatic),
 					resource.TestCheckResourceAttr("infoblox_range.static", "range_function_string", fmt.Sprintf("%s-%s", rangeStartAddressStatic, rangeEndAddressStatic)),
 					resource.TestCheckResourceAttr("infoblox_range.static", "disable_dhcp", "true"),
-					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Location", fmt.Sprintf("{\"value\":\"CollegeStation\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
-					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Owner", fmt.Sprintf("{\"value\":\"leroyjenkins\",\"type\":\"STRING\",\"inheritance_source\":{\"_ref\":\"%s\"}}", os.Getenv("INFOBLOX_INHERITANCE_SOURCE"))),
+					testAccCheckInfobloxExtensibleAttribute("infoblox_range.static", "extensible_attributes.Location", "CollegeStation"),
+					testAccCheckInfobloxExtensibleAttribute("infoblox_range.static", "extensible_attributes.Owner", "leroyjenkins"),
 					resource.TestCheckResourceAttr("infoblox_range.static", "extensible_attributes.Orchestrator", "{\"value\":\"Terraform\",\"type\":\"ENUM\"}"),
 				),
 			},
@@ -223,4 +224,24 @@ resource "infoblox_range" "static" {
 	}
 }
 `, rangeStartAddressStatic, rangeEndAddressStatic)
+}
+
+func testAccCheckInfobloxExtensibleAttribute(resource string, eaKey string, value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resource]
+
+		if !ok {
+			return fmt.Errorf("Extensible attribute %s not found", resource)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No id found for %s", resource)
+		}
+
+		ea := gjson.Parse(rs.Primary.Attributes[eaKey])
+		if ea.Get("value").Str == value {
+			return nil
+		}
+		return fmt.Errorf("Expected ea value: %s for key: %s but found: %s", value, eaKey, ea.Get("value").Str)
+	}
 }

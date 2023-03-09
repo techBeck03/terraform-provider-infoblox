@@ -105,6 +105,7 @@ The following attributes are exported.
 - `ea_search` - (MutuallyExclusiveGroup*, Map[string]) Map of strings for finding network containers by extensible attribute values
 - `extensible_attributes` - (Optional, Map) Extensible attributes of network (Values are JSON encoded).
 - `gateway_ea` - (Optional, String) Name of extensible attribute for storing gateway value. Only applicable if using `gateway_offset`
+- `gateway_ip` - (Optional, String) Allocated ip address for default gateway. Only applicable if using `gateway_offset`
 - `gateway_label` - (Optional, String) Comment string associated with gateway reservation. Only applicable if using `gateway_offset`
 - `gateway_offset` - (Optional, Int) Offset from network address to reserve for default gateway
 - `gateway_ref` - (Computed, String) Reference id of gateway ip reservation. Only applicable if using `gateway_offset`

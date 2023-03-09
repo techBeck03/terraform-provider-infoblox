@@ -80,6 +80,12 @@ func resourceNetwork() *schema.Resource {
 				Optional:     true,
 				RequiredWith: []string{"gateway_offset"},
 			},
+			"gateway_ip": {
+				Type:         schema.TypeString,
+				Description:  "IP address of default gateway if auto-created",
+				Computed:     true,
+				RequiredWith: []string{"gateway_offset"},
+			},
 			"gateway_label": {
 				Type:        schema.TypeString,
 				Description: "Name to apply to gateway reservation",
@@ -488,6 +494,7 @@ func resourceNetworkCreate(ctx context.Context, d *schema.ResourceData, m interf
 			diags = append(diags, diag.FromErr(err)...)
 		}
 		d.Set("gateway_ref", gw_reservation.Ref)
+		d.Set("gateway_ip", gw_reservation.IPAddress)
 		gw_ea := d.Get("gateway_ea").(string)
 		if gw_ea != "" {
 			update := infoblox.Network{
@@ -685,6 +692,7 @@ func resourceNetworkUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			diags = append(diags, diag.FromErr(err)...)
 		}
 		d.Set("gateway_ref", gw_reservation.Ref)
+		d.Set("gateway_ip", gw_reservation.IPAddress)
 		gw_ea := d.Get("gateway_ea").(string)
 		if gw_ea != "" {
 			update := infoblox.Network{
