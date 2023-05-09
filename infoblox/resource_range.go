@@ -95,7 +95,7 @@ func resourceRange() *schema.Resource {
 			"member": {
 				Type:        schema.TypeList,
 				Description: "Grid member associated with range.",
-				Required:    true,
+				Optional:    true,
 				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
